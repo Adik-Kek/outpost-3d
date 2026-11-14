@@ -15,8 +15,8 @@ A 3D mission-commander game for the NASA Space Apps Challenge. You are the comma
 ## Look and feel
 
 A gritty helmet-cam style, all drawn by code:
-- **Rendering:** a half-resolution "pixel" 3D view, cel shading with ink outlines, a dark visor frame, and faint scanlines.
-- **HUD text:** red, pixelated and slightly hand-drawn. It uses a thin built-in typewriter font (Courier New) run through two SVG filters: one keeps one pixel per 2×2 block, and one adds a gentle noise wobble. There are no panels or blue borders: the text floats on the visor, and the side columns tilt slightly as if printed on curved helmet glass. Buttons look like `[ SAVE ]`. Press **P** to turn off both the pixel 3D and the pixel text (useful on slow laptops).
+- **Rendering:** cel shading with ink outlines, a dark visor frame, and faint scanlines.
+- **HUD text:** red, orange, purple and white terminal-style text in a built-in typewriter font (Courier New), floating on the visor with corner brackets instead of boxes.
 - **Status colors** stay readable without color: every gauge shows the word OK, LOW or CRITICAL. LOW is amber, and CRITICAL is a flashing white-on-red block.
 - **HUD layout (helmet-cam style):**
   - top left: a white turning person with an orange health arc, and the budget in orange;
@@ -37,7 +37,7 @@ A gritty helmet-cam style, all drawn by code:
   - night cards that type themselves in.
 - **Night cards** read like a message from a real person: "FROM: RORY · ENGINEERING", "FROM: SPACE WEATHER DESK · DONKI". Each option has a big number key and plain cost and gain lines (▾ costs, ▴ gains).
 - **Gauges** are compact one-line readouts. Click a gauge's name (marked ?) for the "Why?" explanation. A warning word (LOW, HIGH, CRITICAL) appears only when something needs attention.
-- **Pause menu (Esc or M):** Resume, Save game, Tutorial, switch view, Pixel filter, Learn & NASA data, Quit to main menu.
+- **Pause menu (Esc or M):** Resume, Save game, Tutorial, switch view, Learn & NASA data, Quit to main menu.
 - **Crew suits:** orange, with twin yellow air tanks, an X harness and dark helmets. A colored armband and helmet stripe tell the crew apart.
 - **Vitals (top left):** a hand-drawn outline of a person that slowly turns, inside a red tick ring showing your health. Each part turns from white, to light red, to deep red and flashing as its need fails: chest = air, belly = food and water, head = radiation, and arms and legs = overall health.
 - **First-person mode:** press **V**. Click to mouse-look; Esc frees the mouse. You hold a flashlight and your helmet lamp lights the scene.
@@ -64,7 +64,6 @@ node selftest.js
 | Learn panel (data, glossary, numbers, self-test) | **L** | button |
 | Skip the 3-second briefing | **Enter** | |
 | First-person / third-person view | **V** (click to mouse-look) | VIEW button |
-| Pixel filter on/off | **P** | |
 | Close a dialog | **Esc** | Close button |
 
 ## How a day works (about 30 seconds; set in `CONFIG`)
