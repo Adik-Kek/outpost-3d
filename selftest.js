@@ -1,3 +1,4 @@
+// SI disclosure (NASA Space Apps): written with Claude (Anthropic) via Claude Code, directed and tested by the team.
 // Headless self-test: runs the exact simulation code inside index.html with Node (no 3D code involved).
 // Usage:  node selftest.js         (good vs random, formula + dataset checks)
 //         node selftest.js modes   (win rates for every location, site and difficulty)

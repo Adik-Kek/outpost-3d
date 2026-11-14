@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Outpost 3D: Walk the Base</title>
+<meta name="description" content="NASA Space Apps Challenge: run a lunar or Martian outpost. Real NASA data (DONKI, Curiosity RAD, Moon Trek, BVAD) drives the gameplay.">
+<meta name="generator" content="Code written with SI assistance (Claude by Anthropic, via Claude Code), directed and tested by the team">
+<meta name="ai-disclosure" content="SI-assisted: source code and documentation were generated with Claude (Anthropic). The game concept and design brief came from the team. No AI-generated images, audio or video assets are used; all visuals are drawn by code at run time.">
+<!-- SI DISCLOSURE (NASA Space Apps): this code was written with Claude (Anthropic) through Claude Code, following the team's design brief.
+     The team chose the concept, art direction and features, and tested every build. See README.md, "Use of Super Intelligence (SI)". -->
 <script>
 /* ==================== NASA DATA START ==================== */
 /* Every NASA value the game uses. Archived snapshots, not live feeds.
@@ -453,6 +458,18 @@ button.primary small { color: #ff9b85; }
 .mm-panel { left: 54%; }
 .mm.anim .mm-panel { animation-name: crtopen; }
 @media (max-width: 900px) { .mm-panel { left: 50%; } }
+.mm-ver { left: 54px; bottom: 58px; }
+/* ===== spectator mode: no HUD, cinematic bars ===== */
+body.spec #hud, body.spec #labels, body.spec #touch, body.spec #visor, body.spec #demoBar, body.spec #whyPop { display: none !important; }
+#letterbox::before, #letterbox::after { content: ""; position: fixed; left: 0; right: 0; height: 0; background: #000; z-index: 8; transition: height .6s ease; pointer-events: none; }
+#letterbox::before { top: 0; } #letterbox::after { bottom: 0; }
+body.spec #letterbox::before, body.spec #letterbox::after { height: 11vh; }
+#specHint { position: fixed; left: 50%; bottom: 13vh; transform: translateX(-50%); z-index: 9; color: #ecebf4; font-size: 13px; letter-spacing: .12em; text-shadow: 0 0 3px #000, 0 0 6px #000; opacity: 0; pointer-events: none; white-space: nowrap; }
+#specHint.show { animation: spechint 3.5s ease forwards; }
+@keyframes spechint { 0% { opacity: 0; } 10% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+/* visible SI watermark (NASA Space Apps rule): stays on screen in every mode, including spectator shots */
+#siMark { position: fixed; right: 14px; bottom: 26px; z-index: 45; font-size: 10px; letter-spacing: .1em; color: #ffffffa0; text-shadow: 0 0 2px #000, 0 0 4px #000; pointer-events: none; text-transform: uppercase; }
+body.spec #siMark { bottom: calc(11vh + 8px); }
 </style>
 </head>
 <body>
@@ -479,6 +496,9 @@ button.primary small { color: #ff9b85; }
 <div id="modal"></div>
 <div id="demoBar" class="hidden"></div>
 <div id="dayfade"></div>
+<div id="letterbox"></div>
+<div id="specHint"></div>
+<div id="siMark">SI-assisted build (Claude) · NASA data</div>
 <div id="boot" class="hidden"></div>
 <div id="menu"></div>
 <div id="nogl" class="hidden"></div>
@@ -1689,6 +1709,7 @@ function enterWorld(s, pos) {
   buildScene(G.s.C.isMoon, G.s.C.site.id);
   Object.assign(G.player, { x: pos.x, z: pos.z, y: pos.x > HALL.L ? groundY(pos.x, pos.z) : 0, yaw: pos.yaw, pose: 'idle' });
   G.camD = 6; G.door = 0;
+  if (G.spec) toggleSpectator();
   Object.assign(G.cam, { yaw: 1.25, pitch: 0.42, dist: 9 });   // start looking down the length of the hall
   G.crew = ['mira', 'rory', 'tomas'].map((id, k) => ({ id, x: -5 + k * 1.2, z: 1.2, y: 0, yaw: Math.PI, anim: k, pose: 'idle', path: [], mood: 70, helmet: false, blink: false }));
   G.show.o2 = G.s.o2; G.show.water = G.s.water;
@@ -1973,7 +1994,8 @@ function openSaves(mode) {   // mode: 'save' (in game) or 'load' (menu)
   $('modal').querySelectorAll('[data-del]').forEach(b => b.onclick = () => { if (confirm('Delete this save? This cannot be undone.')) { deleteSave(b.dataset.del); openSaves(mode); if (mode === 'load') showMenu(); } });
 }
 function toMenu() {
-  menuView = 'home'; showMenu.last = null; G.demo = null; $('demoBar').classList.add('hidden'); hideTutorial(); $('modal').innerHTML = ''; G.phase = 'menu'; $('hud').classList.add('hidden'); showMenu(); }
+  menuView = 'home'; showMenu.last = null;
+  if (G.spec) toggleSpectator(); G.demo = null; $('demoBar').classList.add('hidden'); hideTutorial(); $('modal').innerHTML = ''; G.phase = 'menu'; $('hud').classList.add('hidden'); showMenu(); }
 
 // ---------- Why? popups ----------
 document.addEventListener('click', e => {
@@ -2011,7 +2033,8 @@ function renderLabels() {
     const inside = a.x < HALL.L;
     if (id === 'you' && G.view === 'first') return;
     const hp = Math.round(s.crew[SIM.CREW.findIndex(c => c.id === id)].health);
-    L.push({ p: [a.x, (a.y || 0) + top, a.z], t: LOOKS[id].name + (hp < 100 ? ' ' + hp + '%' : ''), c: 'lbl tagc', inside });
+    const mood = id === 'you' ? '' : hp < 35 ? ' · SICK' : s.morale > 65 ? ' · calm' : s.morale > 40 ? ' · tense' : ' · low';   // mood indicator
+    L.push({ p: [a.x, (a.y || 0) + top, a.z], t: LOOKS[id].name + (hp < 100 ? ' ' + hp + '%' : '') + mood, c: 'lbl tagc', inside });
     if (G.say[id] && G.say[id].until > G.time) L.push({ p: [a.x, (a.y || 0) + top + 1.0, a.z], t: G.say[id].text, c: 'lbl say', inside });
   });
   if (G.s.C.isMoon && SIM.earthUp(s, s.day)) L.push({ p: EARTH_POS.map((v, k) => k === 1 ? v - 6 : v), t: 'Earth in view (Moon Trek)', c: 'lbl tagc', inside: false });
@@ -2111,9 +2134,13 @@ function renderFrame() {
   const sky = isMoon ? (dark ? [0.07, 0.08, 0.11] : SCENE.sky) : (dust ? [0.5, 0.36, 0.28] : SCENE.sky);
   gl.clearColor(sky[0], sky[1], sky[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   // camera: third person orbits the player; first person looks out of the helmet
-  const P = G.player, C = G.cam, indoors = P.x < HALL.L, fp = G.view === 'first';
+  const P = G.player, C = G.cam, indoors = P.x < HALL.L, fp = G.view === 'first' && !G.spec;
   let eye, look;
-  if (fp) {
+  if (G.spec) {
+    const S = G.spec;
+    eye = S.pos.slice();
+    look = [eye[0] - Math.sin(S.yawS) * Math.cos(S.pitchS), eye[1] + Math.sin(S.pitchS), eye[2] - Math.cos(S.yawS) * Math.cos(S.pitchS)];
+  } else if (fp) {
     const bobY = P.pose === 'walk' ? Math.sin(P.anim * 9) * 0.04 : 0;
     eye = [P.x, (P.y || 0) + 1.62 + bobY, P.z];
     G.fd = [-Math.sin(C.yaw) * Math.cos(G.fpPitch), Math.sin(G.fpPitch), -Math.cos(C.yaw) * Math.cos(G.fpPitch)];
@@ -2223,7 +2250,9 @@ let SOLIDS_EXTRA = [];
 addEventListener('keydown', e => {
   G.keys[e.key.toLowerCase()] = true;
   if (G.phase === 'menu') return;
-  if (e.key === 'Escape') { $('whyPop').classList.add('hidden'); if (!G.s.over && $('modal').innerHTML) closeDialog(); else if (!G.s.over && !G.demo) openPause(); return; }
+  if (!e.repeat && G.keys['o'] && G.keys['p'] && (e.key.toLowerCase() === 'o' || e.key.toLowerCase() === 'p')) { toggleSpectator(); return; }   // O + P together
+  if (G.spec) { if (e.key === 'Escape') toggleSpectator(); if (e.key === ' ') e.preventDefault(); return; }   // other keys fly the camera
+  if (e.key === 'Escape') { $('whyPop').classList.add('hidden'); if (G.demo) { toMenu(); return; } if (!G.s.over && $('modal').innerHTML) closeDialog(); else if (!G.s.over) openPause(); return; }
   if (G.demo && !G.demo.play) return;
   if (G.phase === 'choice' && (e.key === '1' || e.key === '2')) { pickChoice(+e.key - 1); return; }
   if ($('modal').innerHTML) return;
@@ -2241,20 +2270,49 @@ addEventListener('blur', () => { G.keys = {}; });
 let dragging = null;
 canvas.addEventListener('pointerdown', e => {
   if (e.pointerType === 'touch' && e.clientX < innerWidth * 0.35) return;
-  if (G.view === 'first' && e.pointerType === 'mouse' && canvas.requestPointerLock && !document.pointerLockElement) { canvas.requestPointerLock(); return; }   // click to mouse-look
+  if ((G.view === 'first' || G.spec) && e.pointerType === 'mouse' && canvas.requestPointerLock && !document.pointerLockElement) { canvas.requestPointerLock(); return; }   // click to mouse-look
   dragging = { x: e.clientX, y: e.clientY, id: e.pointerId };
 });
 addEventListener('mousemove', e => {   // mouse-look while the pointer is locked (first person)
   if (document.pointerLockElement !== canvas) return;
+  if (G.spec) { G.spec.yaw -= e.movementX * 0.002; G.spec.pitch = Math.max(-1.45, Math.min(1.45, G.spec.pitch - e.movementY * 0.002)); return; }
   G.cam.yaw -= e.movementX * 0.0025; G.fpPitch = Math.max(-1.2, Math.min(1.2, G.fpPitch - e.movementY * 0.0025));
 });
 addEventListener('pointermove', e => {
   if (!dragging || e.pointerId !== dragging.id) return;
+  if (G.spec) { G.spec.yaw -= (e.clientX - dragging.x) * 0.005; G.spec.pitch = Math.max(-1.45, Math.min(1.45, G.spec.pitch - (e.clientY - dragging.y) * 0.005)); dragging.x = e.clientX; dragging.y = e.clientY; return; }
   G.cam.yaw -= (e.clientX - dragging.x) * 0.008;
   if (G.view === 'first') G.fpPitch = Math.max(-1.2, Math.min(1.2, G.fpPitch - (e.clientY - dragging.y) * 0.006));
   else G.cam.pitch = Math.max(0.2, Math.min(1.25, G.cam.pitch + (e.clientY - dragging.y) * 0.006));
   dragging.x = e.clientX; dragging.y = e.clientY;
 });
+/* ---------- spectator mode: a free-flying cinematic camera (O + P) ---------- */
+function showSpecHint(text) { const h = $('specHint'); h.textContent = text; h.className = ''; void h.offsetWidth; h.className = 'show'; }
+function toggleSpectator() {
+  if (!G.s || G.phase === 'menu') return;
+  if (G.spec) { G.spec = null; document.body.classList.remove('spec'); if (document.pointerLockElement) document.exitPointerLock(); return; }
+  // start where the camera is now, looking the same way
+  const e = G.eye || [G.player.x, 3, G.player.z + 6];
+  let d = G.view === 'first' ? G.fd.slice() : [G.player.x - e[0], (G.player.y || 0) + 1.1 - e[1], G.player.z - e[2]];
+  const L = Math.hypot(d[0], d[1], d[2]) || 1; d = d.map(v => v / L);
+  const yaw = Math.atan2(-d[0], -d[2]), pitch = Math.asin(Math.max(-1, Math.min(1, d[1])));
+  G.spec = { pos: e.slice(), vel: [0, 0, 0], yaw, pitch, yawS: yaw, pitchS: pitch, speed: 5 };
+  document.body.classList.add('spec');
+  showSpecHint('SPECTATOR  ·  WASD fly  ·  SPACE / SHIFT up / down  ·  scroll = speed  ·  click = mouse-look  ·  O+P or ESC = exit');
+}
+// Smooth flight: the look eases toward the mouse and the camera glides (inertia), which gives cinematic pans.
+function updateSpectator(dt) {
+  const S = G.spec, k = G.keys;
+  S.yawS += (S.yaw - S.yawS) * Math.min(1, dt * 6); S.pitchS += (S.pitch - S.pitchS) * Math.min(1, dt * 6);
+  const f = [-Math.sin(S.yawS) * Math.cos(S.pitchS), Math.sin(S.pitchS), -Math.cos(S.yawS) * Math.cos(S.pitchS)], r = [Math.cos(S.yawS), 0, -Math.sin(S.yawS)];
+  const fw = (k.w || k.arrowup ? 1 : 0) - (k.s || k.arrowdown ? 1 : 0), side = (k.d || k.arrowright ? 1 : 0) - (k.a || k.arrowleft ? 1 : 0), up = (k[' '] ? 1 : 0) - (k.shift ? 1 : 0);
+  for (let i = 0; i < 3; i++) {
+    const want = (f[i] * fw + r[i] * side + (i === 1 ? up : 0)) * S.speed;
+    S.vel[i] += (want - S.vel[i]) * Math.min(1, dt * 2.5);
+    S.pos[i] += S.vel[i] * dt;
+  }
+  S.pos[1] = Math.max(groundY(S.pos[0], S.pos[2]) + 0.25, Math.min(220, S.pos[1]));
+}
 function toggleView() {
   G.view = G.view === 'first' ? 'third' : 'first';
   document.body.classList.toggle('fp', G.view === 'first');
@@ -2262,7 +2320,7 @@ function toggleView() {
   if (G.view === 'first') { G.cam.yaw = G.player.yaw + Math.PI; G.fpPitch = -0.1; }   // look the way the astronaut faces
 }
 addEventListener('pointerup', e => { if (dragging && e.pointerId === dragging.id) dragging = null; });
-canvas.addEventListener('wheel', e => { G.cam.dist = Math.max(5, Math.min(18, G.cam.dist + e.deltaY * 0.01)); e.preventDefault(); }, { passive: false });
+canvas.addEventListener('wheel', e => { if (G.spec) { G.spec.speed = Math.max(0.5, Math.min(40, G.spec.speed * (e.deltaY > 0 ? 0.87 : 1.15))); showSpecHint('SPEED ' + G.spec.speed.toFixed(1) + ' m/s'); e.preventDefault(); return; } G.cam.dist = Math.max(5, Math.min(18, G.cam.dist + e.deltaY * 0.01)); e.preventDefault(); }, { passive: false });
 // touch: joystick + buttons
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 (function touchSetup() {
@@ -2291,7 +2349,7 @@ function tick(now) {
   if (G.phase !== 'menu' && G.s) {
     const dialog = ($('modal').childElementCount > 0 && G.phase !== 'choice' && G.phase !== 'over') || !$('boot').classList.contains('hidden');   // a dialog or the loading screen is open
     if ($('modal').childElementCount > 0 && document.pointerLockElement) document.exitPointerLock();
-    const paused = G.tut >= 0 || G.phase === 'choice' || dialog || (G.demo && G.demo.hold);
+    const paused = G.tut >= 0 || G.phase === 'choice' || dialog || G.spec || (G.demo && G.demo.hold);
     G.phaseT += dt;
     if (!paused) {
       if (G.phase === 'briefing' && G.phaseT >= CONFIG.briefingSeconds) setPhase('active');
@@ -2305,13 +2363,14 @@ function tick(now) {
         else { setPhase('briefing'); if (!G.demo) saveGame('auto'); }   // autosave every morning
       }
     }
-    if (G.act && !dialog && (G.phase === 'active' || G.phase === 'briefing')) { G.act.t += dt; if (G.act.t >= G.act.dur) finishAct(); }
-    if (G.phase !== 'choice' && G.phase !== 'over' && !dialog) movePlayer(dt, inputVec());
+    if (G.act && !dialog && !G.spec && (G.phase === 'active' || G.phase === 'briefing')) { G.act.t += dt; if (G.act.t >= G.act.dur) finishAct(); }
+    if (G.phase !== 'choice' && G.phase !== 'over' && !dialog && !G.spec) movePlayer(dt, inputVec());
+    if (G.spec) updateSpectator(dt);
     G.resT += dt;
     if (G.resT > 1.5) { G.resT = 0; if (G.fps < 45 && G.res > 0.6) G.res -= 0.1; else if (G.fps > 57 && G.res < 1) G.res = Math.min(1, G.res + 0.05); }   // keep 60 fps on slow laptops
     G.player.anim += dt;
     updateCrew(dt);
-    if (G.demo) G.demo.tick(dt);
+    if (G.demo && !G.spec) G.demo.tick(dt);
     renderFrame();
     drawVitals(dt);
     renderLabels();
@@ -2352,7 +2411,7 @@ function showMenu(view) {
     panel = '<div class="mm-panel"><div class="mm-h">Load game:</div><p>Pick a save file on the right. The game autosaves every morning and when you leave a mission.</p><button data-mm="home" class="mm-confirm">Back</button></div>';
     hint = 'Saves stay in this browser on this computer.';
   } else if (menuView === 'demo') {
-    panel = '<div class="mm-panel"><div class="mm-h">Demo mode:</div><p>A 60-second run through one day: oxygen runs low, the commander repairs the scrubber, the tank refills. Captions name the NASA data.</p><div class="mm-row"><button id="demoW" class="mm-opt">Watch</button><button id="demoP" class="mm-opt">Play by hand</button></div><button data-mm="home" class="mm-confirm">Back</button></div>';
+    panel = '<div class="mm-panel"><div class="mm-h">Demo mode:</div><p>A 23-second run through one day: oxygen runs low, the commander repairs the scrubber, the tank refills, and a real DONKI solar storm sends the crew to the shelter. <b>Watch</b> plays like a normal game with no captions; <b>Play by hand</b> adds step-by-step captions that name the NASA data.</p><div class="mm-row"><button id="demoW" class="mm-opt">Watch</button><button id="demoP" class="mm-opt">Play by hand</button></div><button data-mm="home" class="mm-confirm">Back</button></div>';
     hint = 'Made for showing the judges.';
   }
   const anim = menuView !== showMenu.last; showMenu.last = menuView;   // replay entrance animations only when the view changes
@@ -2362,7 +2421,7 @@ function showMenu(view) {
     panel + (menuView === 'new' || menuView === 'load' ? '<div class="mm-files"><div class="mm-h">Save Files</div>' + files + '</div>' : '') +
     '<div class="mm-hint">' + esc(hint) + '</div>' +
     '<div class="mm-ver">v1.0<br>(SPACE APPS)</div>' +
-    '<div class="mm-keys">WASD walk · E act · Q why · 1/2 choose · V first person · L learn</div></div>';
+    '<div class="mm-keys">WASD walk · E act · Q why · 1/2 choose · V first person · O+P spectator · L learn</div></div>';
   m.querySelectorAll('[data-mm]').forEach(b => b.onclick = () => {
     const v = b.dataset.mm;
     if (v === 'continue') loadGame('auto'); else if (v === 'learn') openLearn('data'); else showMenu(v);
@@ -2531,29 +2590,29 @@ function startDemo(play) {
   Object.assign(G.player, { x: -4, z: 1.0 });
   G.cam.yaw = 0.15; G.cam.pitch = 0.55; G.cam.dist = 11;
   setPhase('briefing');
-  const bar = $('demoBar'); bar.classList.remove('hidden');
-  const D = G.demo = { play, t: 0, beat: 0, speed: 1, hold: false, arrow: true, input: null, done: false,
-    cap(n, extra) { this.beat = n; bar.innerHTML = '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="tag">DEMO · ' + (play ? 'play by hand' : 'watch') + ' · beat ' + Math.min(3, n + 1) + ' of 3</span><span>' + (extra || '') + ' <button id="demoX">Exit demo</button></span></div><div class="cap">' + esc(DEMO_CAPS[n]) + '</div><div class="pr"><i id="demoPr"></i></div>'; $('demoX').onclick = () => toMenu(); },
+  const bar = $('demoBar'); bar.classList.toggle('hidden', !play);   // watch mode looks like normal play: no captions
+  const D = G.demo = { play, t: 0, beat: 0, speed: 1, hold: false, arrow: play, input: null, done: false,
+    cap(n, extra) { this.beat = n; if (!play) return; bar.innerHTML = '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="tag">DEMO · ' + (play ? 'play by hand' : 'watch') + ' · beat ' + Math.min(3, n + 1) + ' of 3</span><span>' + (extra || '') + ' <button id="demoX">Exit demo</button></span></div><div class="cap">' + esc(DEMO_CAPS[n]) + '</div><div class="pr"><i id="demoPr"></i></div>'; $('demoX').onclick = () => toMenu(); },
     onAct(id, before) { if (id === 'repair') { this.input = null; this.arrow = false; this.cap(2); addDemoLog(before); this.actDone = this.t; } },
     tick(dt) {
       this.t += dt; const pr = $('demoPr'); if (pr) pr.style.width = Math.min(100, this.t / 60 * 100) + '%';
       const s = G.s, st = STATIONS[0];
-      if (this.beat === 0 && this.t > (play ? 6 : 12)) this.cap(1, play ? 'Walk to the yellow arrow and press <b>E</b>.' : '');
+      if (this.beat === 0 && this.t > (play ? 6 : 1.2)) this.cap(1, play ? 'Walk to the yellow arrow and press <b>E</b>.' : '');
       if (this.beat === 1 && !play && !G.act) {   // autopilot: walk to the scrubber, then press E
         const dx = st.at[0] - G.player.x, dz = st.at[1] - G.player.z, d = Math.hypot(dx, dz);
         if (d > 0.4) { const cy = G.cam.yaw, wx = dx / d, wz = dz / d; this.input = { x: wx * Math.cos(cy) - wz * Math.sin(cy), y: -wx * Math.sin(cy) - wz * Math.cos(cy) }; }
-        else { this.input = null; if (this.t > 22) { showKeyE(); tryAct(); } }
+        else { this.input = null; tryAct(); }   // press E the moment he arrives
       }
       // keep the day long enough for the demo, then end it so tonight's DONKI card appears
-      this.speed = this.beat < 2 ? 0.3 : this.beat === 2 ? 3 : 0.4;
+      this.speed = this.beat < 2 ? 0.3 : this.beat === 2 ? 4.5 : 0.4;
       if (this.beat === 2 && G.phase === 'choice') { this.cap(3); this.cardAt = this.t; }
       if (this.beat === 3 && !play && G.phase === 'choice' && this.t - this.cardAt > 4) pickChoice(0);   // watch mode: read the card for 4 s, then shelter
-      if (this.beat === 3 && this.t > 60 && !this.done) { this.done = true; bar.innerHTML = '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>Demo complete. The same rules run the full game.</b><span><button id="dReal" class="primary">Play a real mission</button> <button id="dAgain">Replay</button> <button id="dMenu">Menu</button></span></div>'; $('dReal').onclick = () => { G.demo = null; bar.classList.add('hidden'); startGame(); }; $('dAgain').onclick = () => startDemo(play); $('dMenu').onclick = () => toMenu(); }
+      if (!play && this.beat === 3 && G.phase !== 'choice' && this.t - this.cardAt > 9 && !this.done) { this.done = true; toMenu(); return; }   // watch mode: back to the menu once the crew is in the shelter (fits a 30-second video)
+      if (play && this.beat === 3 && this.t > 60 && !this.done) { this.done = true; bar.innerHTML = '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>Demo complete. The same rules run the full game.</b><span><button id="dReal" class="primary">Play a real mission</button> <button id="dAgain">Replay</button> <button id="dMenu">Menu</button></span></div>'; $('dReal').onclick = () => { G.demo = null; bar.classList.add('hidden'); startGame(); }; $('dAgain').onclick = () => startDemo(play); $('dMenu').onclick = () => toMenu(); }
     } };
   D.cap(0);
 }
 function addDemoLog(before) { const s = G.s; s.log.push({ day: s.day, text: 'Result: O₂ tank ' + r1(before.o2) + ' → ' + r1(s.o2) + ' kg. Scrubber back to 100%.', data: 'BVAD' }); renderHUD(); }
-function showKeyE() { const el = $('prompt'); el.classList.remove('hidden'); el.dataset.st = ''; el.innerHTML = '<span class="k" style="font-size:28px">E</span> pressed'; }
 
 /* ==================== BOOT ==================== */
 const selfTestOnly = /[?&]selftest/.test(location.search);

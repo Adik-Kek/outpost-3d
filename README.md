@@ -65,6 +65,7 @@ node selftest.js
 | Skip the 3-second briefing | **Enter** | |
 | First-person / third-person view | **V** (click to mouse-look) | VIEW button |
 | Close a dialog | **Esc** | Close button |
+| Spectator / cinematic camera | **O + P** together (Esc to leave) | |
 
 ## How a day works (about 30 seconds; set in `CONFIG`)
 
@@ -119,26 +120,46 @@ The crew work visibly at their stations: **Mira** (dark ponytail, green suit) in
 - Mars sunlight: 1 ÷ 1.524² = 43% of the Moon's.
 - CO₂: 1 kg ≈ 0.55 m³ of gas, which in a 500 m³ cabin is ≈ 1,100 ppm.
 
-## Demo Mode (60 seconds, same day loop)
+## Demo Mode (about 23 seconds, same day loop)
 
-From the menu: **▶ Demo Mode (watch 60 s)** or **Demo Mode (play by hand)**.
+From the menu: **Demo mode → Watch** or **Play by hand**.
 
-| Time | Beat | What judges see | Caption (dataset) |
-|---|---|---|---|
-| 0–12 s | 1. Problem | Day 6 at Connecting Ridge. The O₂ gauge shows **CRITICAL** (5 kg, under 1.5 days left) and the scrubber's red alarm blinks. | "Oxygen is CRITICAL… Data: BVAD — 4 crew breathe 3.58 kg of O₂ a day." |
-| 12–26 s | 2. Decision | The commander walks to the **O₂ SCRUBBER** (a yellow arrow marks it) and presses **E**. The prompt shows the cost: 4 kg water, 30 kWh, 4 budget. | "The commander walks to the O₂ SCRUBBER and presses E… (BVAD)." |
-| 26–33 s | 3. Consequence | The **O₂ tanks refill in 3D** (5 → 8.6 kg) and the **mission log** adds the result line. | "The O₂ tanks refill in 3D and the mission log records it. Data: BVAD." |
-| 33–60 s | Bonus | Tonight's card is a real **DONKI** event (2024-05-09, X2.2 flare). The crew shelters, and on Day 7 they are inside the storm shelter. | "Tonight's card is built from NASA data: a real solar particle event (DONKI)." |
+- **Watch** looks exactly like someone playing: no captions or demo text. It is short enough to screen-record as the Space Apps 30-second video demo. Esc exits.
+- **Play by hand** adds captions for each step, naming the NASA dataset behind it.
 
-### 60-second script for the judges
+| Time (Watch) | What happens | NASA data shown on screen |
+|---|---|---|
+| 0–3 s | Day 6 briefing: oxygen is **LOW**, the scrubber is worn, its alarm blinks red. | BVAD tag in the briefing |
+| 1–4 s | The commander walks straight to the **O₂ scrubber** and presses **E**. The prompt shows the cost: −4 kg water, −30 kWh, −4 budget. | BVAD rates in the prompt |
+| 4–8 s | The repair runs; the **O₂ tanks visibly refill** and the mission log records the result. | BVAD tag in the log |
+| 8–18 s | The day ends and a night card arrives from the **Space Weather Desk**: a real solar particle event, May 9, 2024. The crew shelters. | DONKI tag on the card |
+| 18–23 s | Day 7: the crew heads into the storm shelter, then the demo returns to the menu. | DONKI in the briefing |
 
-> **(0–12 s)** "This is our Moon base at Connecting Ridge. It's Day 6, and the oxygen gauge says CRITICAL: the scrubber has worn down every day. NASA's BVAD handbook says four people breathe 3.58 kilograms of oxygen a day."
+### 30-second video script (Space Apps demo)
+
+> **(0–5 s)** "Outpost 3D: Walk the Base. You run a Moon or Mars base where real NASA data decides the sunlight, the storms and how much your crew breathes."
 >
-> **(12–26 s)** "So I walk to the scrubber and press E. Before I commit, the prompt shows the trade-off: making oxygen splits 4 kg of water and uses 30 kWh of battery. Nothing is free."
+> **(5–15 s)** "Oxygen is low, so I walk to the scrubber and press E. Before I commit, I see the trade-off: making oxygen uses water and power. NASA's BVAD handbook says four people breathe 3.58 kg a day."
 >
-> **(26–33 s)** "Watch the tanks: oxygen climbs from 5 to 8.6 kilograms, and the mission log records it."
+> **(15–25 s)** "At night the game turns real NASA space-weather records into decisions: this solar storm really happened in May 2024. I shelter the crew: they stay safe, but we lose a day of work."
 >
-> **(33–60 s)** "At night the game builds a decision from real NASA data. DONKI recorded a solar particle event on May 9, 2024. I shelter the crew: their dose stays low, but tomorrow we only get one action. Every gain costs something."
+> **(25–30 s)** "Every choice costs something. That's what keeps an outpost alive."
+
+If anyone under 18 is on the team, the Space Apps terms say their recognizable name, voice or face should not appear in the submission. Use on-screen text or an adult narrator for the video.
+
+## Spectator mode (cinematic shots)
+
+Press **O and P together** during a mission. The HUD disappears and cinematic black bars slide in. The game clock freezes while the crew keep working.
+
+| Control | Action |
+|---|---|
+| WASD / arrows | Fly forward, back and sideways (the camera glides with inertia) |
+| Space / Shift | Up / down |
+| Mouse (click to lock) or drag | Look around; the view eases smoothly for slow pans |
+| Scroll wheel | Flying speed (0.5–40 m/s) |
+| O + P or Esc | Back to the game |
+
+The camera flies through walls, so you can film the cutaway habitat, the solar wings and the craters. The small "SI-assisted build" watermark stays on screen so recordings meet the Space Apps disclosure rule.
 
 ## Self-test results
 
@@ -158,8 +179,33 @@ The self-test runs the simulation only, with no 3D code, using the same code in 
 
 **Performance:** 160–171 draw calls per frame. Measured render cost is 1.6 ms per frame at 1920×1200, about a tenth of the 16.7 ms budget for 60 fps. If a slow laptop drops below 45 fps, the game automatically lowers its render resolution (down to 60%) to stay smooth.
 
+## Use of Super Intelligence (SI)
+
+As the Space Apps rules require, this project discloses its use of AI ("Super Intelligence") tools:
+
+- **Code and documentation:** written with **Claude (Anthropic)** through **Claude Code**. The team wrote the challenge brief, chose the concept, the gameplay, the art direction and every feature, and tested each build. Claude wrote the source code, the self-test and this README to that brief, and helped collect the NASA data values.
+- **Metadata:** `index.html` carries `generator` and `ai-disclosure` meta tags and a comment at the top; `selftest.js` has a disclosure comment.
+- **Images and video:** the game has no AI-generated images, audio or video assets; every visual is drawn by code at run time. Because that code is AI-written, the game shows a small visible watermark, "SI-assisted build (Claude) · NASA data", on every screen (menu, game and spectator mode), so screenshots and screen recordings carry it.
+- **NASA branding:** none is used. No NASA logos, flags, insignia or mission identifiers appear in the game; the menu only uses blue, white and red colors.
+
+## References (data, resources and tools)
+
+**NASA data (archived snapshots embedded in `index.html`):**
+- DONKI Space Weather Database, NASA CCMC: https://ccmc.gsfc.nasa.gov/DONKI-API/get/SEP (fetched 2026-11-14 for 2024-05-01 to 2024-06-29).
+- Curiosity RAD surface dose, NASA PDS MSL-M-RAD-3-RDR-V1.0: https://pds-ppi.igpp.ucla.edu/data/MSL-M-RAD-3-RDR-V1.0/, using the published summaries Hassler et al., *Science* 343 (2014) and Zeitlin et al., *Science* 340 (2013).
+- Moon Trek, NASA Solar System Treks (LRO): https://trek.nasa.gov/moon/, layers `WAC_POLE_ILL_PCT_SOUTH_100M` and `AVGVISIB_85S_060M_201608_EARTH_SP`. The three site values are simplified estimates, not layer readings (see above).
+- Life Support Baseline Values and Assumptions Document (BVAD), NASA/TP-2015-218570/REV2: https://ntrs.nasa.gov/citations/20210024855
+
+**Tools:** Claude Code (Anthropic) for writing code; GitHub for hosting the code; Vercel for hosting the playable site. The game uses no third-party code, libraries, fonts, images or sounds: the WebGL renderer is hand-written, and text uses the browser's built-in fonts.
+
+## License
+
+Open source under the [MIT License](LICENSE), as the Space Apps terms require for original content. NASA data values remain from their public NASA sources.
+
 ## Files
 
 - `index.html`: the whole game (data, simulation, renderer, scene, HUD, demo, self-test).
 - `selftest.js`: runs the same simulation headless in Node (`node selftest.js`, or `node selftest.js modes`).
 - `README.md`: this file.
+- `LICENSE`: MIT open-source license.
+- `SUBMISSION.md`: draft text for the Space Apps project form.
