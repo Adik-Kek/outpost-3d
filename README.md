@@ -1,6 +1,6 @@
 # Outpost 3D: Walk the Base
 
-**Play it:** https://outpost-3d.vercel.app
+**Play it:** https://outpost-3d.vercel.app (redeploys automatically from GitHub on every push to `main`)
 
 A 3D mission-commander game for the NASA Space Apps Challenge. You are the commander, a playable astronaut inside a cutaway lunar or Martian outpost. Walk between stations, fix what breaks, and make one hard call every night. Real NASA data decides when the Sun sets, when solar storms hit, and how much your crew breathes and eats.
 
