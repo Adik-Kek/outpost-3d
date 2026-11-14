@@ -1,7 +1,5 @@
 {
-  "cleanUrls": true,
   "rewrites": [
-    { "source": "/", "destination": "/outpost-3d/index.html" },
-    { "source": "/last-light", "destination": "/index.html" }
+    { "source": "/", "destination": "/outpost-3d/index.html" }
   ]
 }
