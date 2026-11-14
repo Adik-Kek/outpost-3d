@@ -448,6 +448,10 @@ body.pix #labels { filter: url(#pixonly); }
 .gval { flex: 1; color: var(--orange); font-size: 13px; white-space: nowrap; }
 .st.s-ok { border: none; color: #77718f; font-size: 10px; }
 .g-low .gval { color: #ffc35a; } .g-bad .gval { color: #ff5a40; }
+/* ===== layout: nothing shares a spot ===== */
+#banner { top: 92px; --fill: #050308d8; }
+#tut { top: auto; left: auto; right: 16px; bottom: 96px; transform: none; width: min(400px, 92vw); --fill: #050308e6; }
+@media (max-width: 760px) { #tut { right: 8px; left: 8px; width: auto; bottom: 150px; } #banner { top: 70px; } }
 </style>
 </head>
 <body class="pix">
@@ -1852,6 +1856,8 @@ function renderHUD() {
     return k < used.length + s.today.actions ? '<div class="slot">EMPTY</div>' : '<div class="slot busy">BUSY</div>';
   }).join(''));
   renderHints();
+  G.hudRects = ['topbar', 'hints', 'crewPanel', 'gauges', 'vitals', 'vitalsTxt', 'budget', 'banner', 'tut', 'slots', 'prompt', 'log']
+    .map(id => $(id)).filter(el => el && !el.classList.contains('hidden') && el.offsetParent).map(el => el.getBoundingClientRect());   // where HUD text sits, so 3D labels can stay clear of it
   if (setHTML('crewPanel', '<b>Crew</b>' + SIM.CREW.map((c, i) => {
     const h = s.crew[i].health, stt = h > 60 ? 'ok' : h > 30 ? 'low' : 'bad', col = LOOKS[c.id].band.map(v => Math.round(v * 255)).join(',');
     return '<div class="c"><span class="dot" style="background:rgb(' + col + ')"></span><span style="width:52px">' + c.short + '</span><div class="hb"><i style="width:' + Math.round(h) + '%;background:' + dmgColor(1 - h / 100) + '"></i></div><span class="st s-' + stt + '">' + Math.round(h) + '</span></div>';
@@ -2033,7 +2039,7 @@ function renderLabels() {
   labelPool.forEach((d, k) => {
     const l = L[k], q = l && project3(l.p);
     const camIn = G.eye ? inHall(G.eye, 0) : true;
-    if (!q || l.inside !== camIn ||   // labels on the far side of a wall stay hidden
+    if (!q || l.inside !== camIn || (G.hudRects || []).some(r => q[0] > r.left - 30 && q[0] < r.right + 30 && q[1] > r.top - 6 && q[1] < r.bottom + 22) ||   // hide labels behind walls or under HUD text
         q[0] < -50 || q[0] > innerWidth + 50 || q[1] < 0 || q[1] > innerHeight) { d.style.display = 'none'; return; }
     d.style.display = ''; if (d.className !== l.c) d.className = l.c; if (d.textContent !== l.t) d.textContent = l.t;
     d.style.left = q[0] + 'px'; d.style.top = q[1] + 'px';
