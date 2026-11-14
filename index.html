@@ -417,6 +417,10 @@ button.primary small { color: #ff9b85; }
 /* ===== day fade ===== */
 #dayfade { position: fixed; inset: 0; z-index: 9; pointer-events: none; background: #000; color: #ecebf4; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; }
 #dayfade.show { animation: dayfade 1.8s ease-in-out forwards; }
+#dayfade.title { animation: titlecard 3.5s ease-in forwards; background: transparent; }
+#dayfade.title b { font-size: clamp(48px, 8vw, 96px); color: #fff; text-shadow: 0 0 20px #000; letter-spacing: .2em; }
+#dayfade.title span { color: #ecebf4; text-shadow: 0 0 8px #000; }
+@keyframes titlecard { 0% { opacity: 0; } 35% { opacity: 1; } 100% { opacity: 1; } }
 #dayfade b { font-size: 48px; letter-spacing: .3em; color: #ff3b24; } #dayfade span { letter-spacing: .3em; margin-top: 8px; color: #8f7dff; }
 @keyframes dayfade { 0% { opacity: 0; } 15% { opacity: .94; } 60% { opacity: .94; } 100% { opacity: 0; } }
 /* ===== night card as a comms memo ===== */
@@ -1995,6 +1999,7 @@ function openSaves(mode) {   // mode: 'save' (in game) or 'load' (menu)
 }
 function toMenu() {
   menuView = 'home'; showMenu.last = null;
+  G.cine = null;
   if (G.spec) toggleSpectator(); G.demo = null; $('demoBar').classList.add('hidden'); hideTutorial(); $('modal').innerHTML = ''; G.phase = 'menu'; $('hud').classList.add('hidden'); showMenu(); }
 
 // ---------- Why? popups ----------
@@ -2176,7 +2181,7 @@ function renderFrame() {
   draw(SCENE.arch, ID, [1, 1, 1], { outline: false, merged: true });
   draw(SCENE.shell, ID, [1, 1, 1], { merged: true, ow: 0.06 });
   // airlock door: slides up when someone walks close
-  const nearDoor = [G.player].concat(G.crew).some(a => Math.hypot(a.x - HALL.L, a.z) < 2.8);
+  const nearDoor = [G.player].concat(G.crew).some(a => Math.hypot(a.x - HALL.L, a.z) < 2.8) || (G.spec && Math.hypot(G.spec.pos[0] - HALL.L, G.spec.pos[2]) < 6);
   G.door += ((nearDoor ? 1 : 0) - G.door) * 0.1;
   part('box', M4.trs([HALL.L + 0.12, DOOR.h / 2 + G.door * (DOOR.h - 0.2), 0], [0.14, DOOR.h, DOOR.half * 2]), [0.62, 0.64, 0.62], { ow: 0.03 });
   draw(SCENE.props, ID, [1, 1, 1], { merged: true, ow: 0.035 });
@@ -2250,6 +2255,7 @@ let SOLIDS_EXTRA = [];
 addEventListener('keydown', e => {
   G.keys[e.key.toLowerCase()] = true;
   if (G.phase === 'menu') return;
+  if (G.cine) { if (e.key === 'Escape') toMenu(); return; }   // cinematic: Esc skips, other keys do nothing
   if (!e.repeat && G.keys['o'] && G.keys['p'] && (e.key.toLowerCase() === 'o' || e.key.toLowerCase() === 'p')) { toggleSpectator(); return; }   // O + P together
   if (G.spec) { if (e.key === 'Escape') toggleSpectator(); if (e.key === ' ') e.preventDefault(); return; }   // other keys fly the camera
   if (e.key === 'Escape') { $('whyPop').classList.add('hidden'); if (G.demo) { toMenu(); return; } if (!G.s.over && $('modal').innerHTML) closeDialog(); else if (!G.s.over) openPause(); return; }
@@ -2365,7 +2371,7 @@ function tick(now) {
     }
     if (G.act && !dialog && !G.spec && (G.phase === 'active' || G.phase === 'briefing')) { G.act.t += dt; if (G.act.t >= G.act.dur) finishAct(); }
     if (G.phase !== 'choice' && G.phase !== 'over' && !dialog && !G.spec) movePlayer(dt, inputVec());
-    if (G.spec) updateSpectator(dt);
+    if (G.cine) G.cine.tick(dt); else if (G.spec) updateSpectator(dt);
     G.resT += dt;
     if (G.resT > 1.5) { G.resT = 0; if (G.fps < 45 && G.res > 0.6) G.res -= 0.1; else if (G.fps > 57 && G.res < 1) G.res = Math.min(1, G.res + 0.05); }   // keep 60 fps on slow laptops
     G.player.anim += dt;
@@ -2411,7 +2417,7 @@ function showMenu(view) {
     panel = '<div class="mm-panel"><div class="mm-h">Load game:</div><p>Pick a save file on the right. The game autosaves every morning and when you leave a mission.</p><button data-mm="home" class="mm-confirm">Back</button></div>';
     hint = 'Saves stay in this browser on this computer.';
   } else if (menuView === 'demo') {
-    panel = '<div class="mm-panel"><div class="mm-h">Demo mode:</div><p>A 23-second run through one day: oxygen runs low, the commander repairs the scrubber, the tank refills, and a real DONKI solar storm sends the crew to the shelter. <b>Watch</b> plays like a normal game with no captions; <b>Play by hand</b> adds step-by-step captions that name the NASA data.</p><div class="mm-row"><button id="demoW" class="mm-opt">Watch</button><button id="demoP" class="mm-opt">Play by hand</button></div><button data-mm="home" class="mm-confirm">Back</button></div>';
+    panel = '<div class="mm-panel"><div class="mm-h">Demo mode:</div><p>A 23-second run through one day: oxygen runs low, the commander repairs the scrubber, the tank refills, and a real DONKI solar storm sends the crew to the shelter. <b>Watch</b> plays like a normal game with no captions; <b>Play by hand</b> adds step-by-step captions that name the NASA data. <b>Cinematic</b> is a 30-second camera tour of the base.</p><div class="mm-row"><button id="demoW" class="mm-opt">Watch</button><button id="demoP" class="mm-opt">Play by hand</button><button id="demoC" class="mm-opt">Cinematic (30 s)</button></div><button data-mm="home" class="mm-confirm">Back</button></div>';
     hint = 'Made for showing the judges.';
   }
   const anim = menuView !== showMenu.last; showMenu.last = menuView;   // replay entrance animations only when the view changes
@@ -2433,7 +2439,7 @@ function showMenu(view) {
   m.querySelectorAll('[data-file]').forEach(b => b.onclick = () => loadGame(b.dataset.file));
   m.querySelectorAll('.mm-del').forEach(b => b.onclick = () => { if (confirm('Delete this save? This cannot be undone.')) { deleteSave(b.dataset.del); showMenu(); } });
   if ($('go')) $('go').onclick = () => startGame();
-  if ($('demoW')) { $('demoW').onclick = () => startDemo(false); $('demoP').onclick = () => startDemo(true); }
+  if ($('demoW')) { $('demoW').onclick = () => startDemo(false); $('demoP').onclick = () => startDemo(true); $('demoC').onclick = () => startCinematic(); }
 }
 /* ---------- transitions: boot screen, mission loading, day fade, typewriter ---------- */
 // Terminal boot sequence: lines appear one by one, then the screen switches off like an old CRT. Any key or click skips it.
@@ -2577,6 +2583,45 @@ const DEMO_CAPS = [
   'Consequence: the O₂ tanks refill in 3D and the mission log records it. Data: BVAD.',
   'Tonight’s card is built from NASA data: a real solar particle event (DONKI). The crew shelters.'
 ];
+/* ---------- Cinematic: a 30-second automatic camera tour (uses the spectator camera) ---------- */
+// Each shot eases the camera from one position/aim to another. Positions are in metres (habitat x −12..12, airlock at x = 12).
+const CINE_SHOTS = [
+  { dur: 5.5, from: [36, 10, 24], fromLook: [2, 2, 0], to: [25, 5.5, 19], toLook: [9, 2, -3] },          // establishing: the habitat on the plain
+  { dur: 5,   from: [31, 3, 0], fromLook: [21, 1.4, -8], to: [14.5, 2.4, -1.2], toLook: [22, 1.3, -10] },  // low sweep along the solar wings
+  { dur: 4.5, from: [20, 1.8, 0.2], fromLook: [6, 1.6, 0], to: [10.2, 1.7, 0], toLook: [-4, 1.4, 0] },     // through the airlock
+  { dur: 5,   from: [9.5, 2.7, 2.6], fromLook: [6, 1.2, -4], to: [5, 1.7, 0.6], toLook: [7.7, 1.1, -4] },   // past the O2 tanks
+  { dur: 5,   from: [4.6, 2.6, 0.8], fromLook: [1, 0.9, -3.3], to: [-1.8, 2.5, 0.6], toLook: [1, 0.8, -3.3] }, // greenhouse close-up
+  { dur: 5,   from: [-4, 2, 2], fromLook: [-6, 1, 3], to: [-2, 28, 22], toLook: [2, 0, -3] }                 // crane up through the roof
+];
+const ease = x => x * x * (3 - 2 * x);   // smoothstep: slow in, slow out
+function startCinematic() {
+  if (G.view === 'first') toggleView();
+  $('menu').classList.add('hidden'); $('hud').classList.remove('hidden'); hideTutorial();
+  newMission({ location: 'moon', siteId: 'ridge', difficulty: 'pioneer', seed: 77, swOffset: 30 });
+  const s = G.s;   // dress the base for the camera: berm, extra solar wings, two potato beds, Earth in the sky
+  Object.assign(s.mods, { shield: 2, arrays: 4 });
+  s.beds = [{ progress: 5, hydr: 0.9, wilt: 0, lost: false }, { progress: 4, hydr: 0.9, wilt: 0, lost: false }];
+  s.earthPhase = 0;
+  Object.assign(G.player, { x: 10.1, z: -2.4, yaw: Math.PI, pose: 'work' });
+  setPhase('active');
+  G.spec = { pos: CINE_SHOTS[0].from.slice(), vel: [0, 0, 0], yaw: 0, pitch: 0, yawS: 0, pitchS: 0, speed: 0 };
+  document.body.classList.add('spec');
+  G.cine = { t: 0, titled: false,
+    tick(dt) {
+      this.t += dt;
+      let t = this.t, k = 0;
+      while (k < CINE_SHOTS.length - 1 && t > CINE_SHOTS[k].dur) { t -= CINE_SHOTS[k].dur; k++; }
+      const sh = CINE_SHOTS[k], f = ease(Math.min(1, t / sh.dur)), mix = (a, b) => a.map((v, i) => v + (b[i] - v) * f);
+      const pos = mix(sh.from, sh.to), look = mix(sh.fromLook, sh.toLook);
+      const d = look.map((v, i) => v - pos[i]), L = Math.hypot(d[0], d[1], d[2]) || 1;
+      G.spec.pos = pos; G.spec.yaw = G.spec.yawS = Math.atan2(-d[0], -d[2]); G.spec.pitch = G.spec.pitchS = Math.asin(d[1] / L);
+      if (this.t > 26.5 && !this.titled) {   // title card over the final crane shot
+        this.titled = true;
+        const el = $('dayfade'); el.innerHTML = '<b>OUTPOST 3D</b><span>REAL NASA DATA · REAL TRADE-OFFS</span>'; el.className = ''; void el.offsetWidth; el.className = 'title';
+      }
+      if (this.t > 30) { $('dayfade').className = ''; toMenu(); }
+    } };
+}
 function startDemo(play) {
   if (G.view === 'first') toggleView();   // the demo is filmed in third person
   $('menu').classList.add('hidden'); $('hud').classList.remove('hidden'); hideTutorial();

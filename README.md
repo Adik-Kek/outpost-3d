@@ -124,6 +124,8 @@ The crew work visibly at their stations: **Mira** (dark ponytail, green suit) in
 
 From the menu: **Demo mode → Watch** or **Play by hand**.
 
+**Demo mode → Cinematic (30 s)** plays a hands-free camera tour instead: an establishing crane over the base, the solar wings, the airlock, the life-support tanks, the crew working in the greenhouse, and a closing pull-back with a title card. It ends back at the menu (Esc skips it). Use it to film the trailer for your submission video.
+
 - **Watch** looks exactly like someone playing: no captions or demo text. It is short enough to screen-record as the Space Apps 30-second video demo. Esc exits.
 - **Play by hand** adds captions for each step, naming the NASA dataset behind it.
 
