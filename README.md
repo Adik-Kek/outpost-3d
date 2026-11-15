@@ -68,6 +68,8 @@ node selftest.js
 | Close a dialog | **Esc** | Close button |
 | Spectator / cinematic camera | **O + P** together (Esc to leave) | |
 
+**Phones:** turn the phone sideways. The menu and HUD are laid out at laptop size and scaled to fit, so a phone shows the same screen as a laptop, with a thumb joystick and E / JUMP / ? / VIEW buttons. Held upright, the menu becomes a single column, and the game asks you to turn the phone before play starts.
+
 ## How a day works (about 30 seconds; set in `CONFIG`)
 
 1. **Briefing (3 s):** the day's forecast, with NASA data tags. It covers sunlight or dark (Moon Trek), Earth in view (Moon Trek), solar storm warnings (DONKI), dust storms, and cargo.

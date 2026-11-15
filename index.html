@@ -185,7 +185,7 @@ button.sel { background: var(--mustard); }
 #tbtns { position: absolute; right: 20px; bottom: 170px; display: flex; flex-direction: column; gap: 10px; pointer-events: auto; }
 #tbtns button { width: 76px; height: 76px; border-radius: 50%; font-size: 22px; }
 #nogl { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 50; background: #1b1d22; padding: 20px; }
-@media (max-width: 760px) {
+@media (max-width: 760px) and (orientation: portrait) {
   #gauges { width: 148px; padding: 5px; } .g { margin-bottom: 1px; } .g .bar, .g .row + div { display: none; } .g .row { font-size: 11px; }
   #crewPanel { width: 128px; font-size: 11px; padding: 5px; } #crewPanel .hb { display: none; }
   #log { display: none; }
@@ -193,6 +193,28 @@ button.sel { background: var(--mustard); }
   #clock { width: 70px; } #prompt { bottom: 96px; font-size: 13px; } #banner { top: auto; bottom: 96px; }
   #stick { bottom: 210px; } #tbtns { bottom: 210px; }
 }
+
+/* ===== phones ===== */
+/* Sideways: #hud and #menu are laid out at a laptop-size virtual screen and scaled down to fit (see fitUI), so the phone shows the same layout. */
+body.fit #hud, body.fit #menu.fitm { inset: auto; left: 0; top: 0; transform-origin: 0 0; }
+body.touchland #stick { left: max(18px, env(safe-area-inset-left)); bottom: 18px; width: 104px; height: 104px; }
+body.touchland #stick i { left: 27px; top: 27px; }
+body.touchland #tbtns { right: max(14px, env(safe-area-inset-right)); bottom: 14px; display: grid; grid-template-columns: 58px 58px; gap: 8px; }
+body.touchland #tbtns button { width: 58px; height: 58px; font-size: 13px; min-height: 0; padding: 0; }
+body.touchland .mm-keys { display: none; }
+body.touchland #tbtns button { background: #0a1120d0 !important; border: 2px solid #9fc2ff !important; color: #fff !important; border-radius: 50% !important; letter-spacing: .06em; font-weight: 700; box-shadow: 0 0 10px #0008 !important; }
+body.touchland #tbtns button:active { background: #1b3263 !important; }
+body.touchland #siMark { right: auto; left: max(136px, calc(env(safe-area-inset-left) + 136px)); bottom: 4px; font-size: 8px; white-space: nowrap; }
+body.fit #labels .lbl { font-size: calc(12px * max(.72, var(--ui-s, 1))); }
+body.touchland #tJ { grid-column: 1 / 3; width: 124px !important; border-radius: 29px !important; }
+/* Upright phone during play: ask to turn sideways (the game is built for a wide screen) */
+#rotate { position: fixed; inset: 0; z-index: 40; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: #05070c; color: #e8eefc; text-align: center; padding: 24px; }
+body.askrotate #rotate { display: flex; }
+#rotate .ph { width: 54px; height: 92px; border: 4px solid #e8eefc; border-radius: 10px; animation: turnph 2.4s ease-in-out infinite; }
+@keyframes turnph { 0%, 25% { transform: rotate(0); } 55%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0); } }
+#rotate b { font-size: 20px; letter-spacing: .18em; } #rotate small { color: #9fc2ff; letter-spacing: .08em; line-height: 1.5; }
+#rotate button { margin-top: 6px; }
+canvas#gl, #touch, #hud { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 /* ===== helmet-cam terminal theme ===== */
 :root { --term: #8fb4ff; --term-dim: #4f6cb0; --orange: #e8742c; --text: #b9cdfa; }
 html, body { font-family: "Lucida Console", "Consolas", "Menlo", "Courier New", monospace; letter-spacing: .03em; background: #05070c; }
@@ -228,7 +250,7 @@ button.primary small { color: #f0a77a; }
 #visor { position: fixed; inset: 0; pointer-events: none; z-index: 1; border-radius: 34px; box-shadow: inset 0 0 0 10px #000, inset 0 0 90px 30px #000a; }
 #visor::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, #ffffff06 0 1px, transparent 1px 3px); }
 body.fp #visor { border-radius: 120px / 80px; box-shadow: inset 0 0 0 26px #040404, inset 0 0 160px 70px #000d; }
-@media (max-width: 760px) { #vitals { width: 120px; height: 148px; } #gauges { top: 150px; } }
+@media (max-width: 760px) and (orientation: portrait) { #vitals { width: 120px; height: 148px; } #gauges { top: 150px; } }
 /* ===== hand-drawn red visor HUD (overrides the themes above) ===== */
 :root { --red: #ff3d26; --red-soft: #ff7a62; --amber: #ffb21a; }
 html, body { font-family: "Courier New", Courier, "Lucida Console", monospace; letter-spacing: .05em; }
@@ -280,7 +302,7 @@ button.primary small { color: #ff9b85; }
 #crewPanel { transform: perspective(700px) rotateY(-9deg); transform-origin: right center; }
 #log { transform: perspective(700px) rotateY(7deg); transform-origin: left center; }
 #labels { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
-@media (max-width: 760px) { #vitals { width: 120px; height: 146px; } #vitalsTxt { top: 136px; width: 120px; font-size: 11px; } #gauges { top: 172px; transform: none; } #crewPanel { transform: none; } }
+@media (max-width: 760px) and (orientation: portrait) { #vitals { width: 120px; height: 146px; } #vitalsTxt { top: 136px; width: 120px; font-size: 11px; } #gauges { top: 172px; transform: none; } #crewPanel { transform: none; } }
 /* ===== main menu: red terminal screen ===== */
 #menu { background: radial-gradient(ellipse at 50% 40%, #3a0303, #1c0000 70%, #0d0000); display: block; padding: 0; }
 .mm { position: absolute; inset: 0; color: #ff4a2a; overflow: hidden; }
@@ -324,7 +346,7 @@ button.primary small { color: #ff9b85; }
 .mm-hint { position: absolute; left: 50%; bottom: 5%; transform: translateX(-50%); width: min(620px, 80vw); text-align: center; line-height: 1.6; letter-spacing: .12em; color: #e0533a; }
 .mm-ver { position: absolute; left: 22px; bottom: 26px; font-size: 22px; color: #8f1a10; line-height: 1.1; }
 .mm-keys { position: absolute; right: 30px; bottom: 30px; font-size: 11px; color: #9a2a1a; letter-spacing: .1em; }
-@media (max-width: 900px) {
+@media (max-width: 900px) and (orientation: portrait) {
   .mm-panel { left: 50%; top: auto; bottom: 18%; transform: translateX(-50%); width: 92vw; }
   .mm-files { right: 50%; top: auto; bottom: 4%; transform: translateX(50%); width: 92vw; }
   .mm-nav { left: 6%; bottom: auto; top: 34%; flex-direction: row; flex-wrap: wrap; gap: 6px; }
@@ -380,7 +402,7 @@ button.primary small { color: #ff9b85; }
 .opt { --fill: none; background: #ffffff08; border-left: 2px solid var(--orange); color: var(--white); }
 .opt .cost { color: #ffc35a; } .opt .gain { color: var(--orange); }
 .modal .tag, .tag { color: #b9adff; border-color: #8f7dff88; }
-@media (max-width: 760px) { #hints { display: none; } #crewPanel { top: 8px; } .slot { width: 72px; height: 46px; font-size: 11px; } #budget { top: 160px; } #gauges { top: 182px; } }
+@media (max-width: 760px) and (orientation: portrait) { #hints { display: none; } #crewPanel { top: 8px; } .slot { width: 72px; height: 46px; font-size: 11px; } #budget { top: 160px; } #gauges { top: 182px; } }
 /* ===== NASA-blue main menu ===== */
 #menu { background: radial-gradient(ellipse at 50% 35%, #15408f, #0b2a66 45%, #04102a); }
 .mm { color: #e8eefc; }
@@ -466,13 +488,13 @@ button.primary small { color: #ff9b85; }
 /* ===== layout: nothing shares a spot ===== */
 #banner { top: 92px; --fill: #050308d8; }
 #tut { top: auto; left: auto; right: 16px; bottom: 96px; transform: none; width: min(400px, 92vw); --fill: #050308e6; }
-@media (max-width: 760px) { #tut { right: 8px; left: 8px; width: auto; bottom: 150px; } #banner { top: 70px; } }
+@media (max-width: 760px) and (orientation: portrait) { #tut { right: 8px; left: 8px; width: auto; bottom: 150px; } #banner { top: 70px; } }
 /* keep the menu list clear of the centre panel */
 .mm-nav { left: 4%; }
 .mm-item { font-size: clamp(16px, 1.6vw, 23px); letter-spacing: .14em; }
 .mm-panel { left: 54%; }
 .mm.anim .mm-panel { animation-name: crtopen; }
-@media (max-width: 900px) { .mm-panel { left: 50%; } }
+@media (max-width: 900px) and (orientation: portrait) { .mm-panel { left: 50%; } }
 .mm-ver { left: 54px; bottom: 58px; }
 /* ===== spectator mode: no HUD, cinematic bars ===== */
 body.spec #hud, body.spec #labels, body.spec #touch, body.spec #visor, body.spec #demoBar, body.spec #whyPop { display: none !important; }
@@ -491,6 +513,25 @@ body.spec #letterbox::before, body.spec #letterbox::after { height: 11vh; }
 /* visible SI watermark (NASA Space Apps rule): stays on screen in every mode, including spectator shots */
 #siMark { position: fixed; right: 14px; bottom: 26px; z-index: 45; font-size: 10px; letter-spacing: .1em; color: #ffffffa0; text-shadow: 0 0 2px #000, 0 0 4px #000; pointer-events: none; text-transform: uppercase; }
 body.spec #siMark { bottom: calc(11vh + 8px); }
+/* Upright: one clean column for the menu */
+@media (orientation: portrait) and (max-width: 600px) {
+  .mm-frame { width: 88vw; height: 23vw; top: calc(9% - 14px); border-width: 6px; }
+  .mm-title { top: 9%; white-space: nowrap; }
+  .mm-title b { font-size: 12.5vw; } .mm-title b.two { margin-left: .2em; }
+  .mm-title span { font-size: 12px; letter-spacing: .38em; margin-top: 10px; white-space: nowrap; }
+  .mm-nav { left: 8%; right: 8%; top: 31%; bottom: auto; flex-direction: column; flex-wrap: nowrap; gap: 4px; }
+  .mm-item { font-size: 17px; padding: 8px 6px; }
+  .mm-ver { left: 34px; bottom: 40px; font-size: 16px; }
+  .mm-hint { display: none; }
+  .mm-panel { left: 50%; top: 3%; bottom: auto; max-height: 90%; overflow-y: auto; transform: translateX(-50%); width: 94vw; z-index: 3; padding: 14px 12px; }
+  .mm-panel .mm-row { flex-wrap: wrap; }
+  #menu[data-view="new"] .mm-files { display: none; }
+  #menu[data-view="load"] .mm-panel { top: 26%; }
+  .mm-files { z-index: 3; left: 3vw; right: auto; top: auto; bottom: 13%; width: 94vw; transform: none !important; }
+  .mm-panel { background: #0a1f4e; transform: translateX(-50%) !important; }
+  .mm-panel .mm-opt, .mm-panel button { padding: 6px 8px; min-height: 34px; }
+  .mm-panel .mm-lbl { margin-top: 6px; }
+}
 </style>
 </head>
 <body>
@@ -523,6 +564,7 @@ body.spec #siMark { bottom: calc(11vh + 8px); }
 <div id="siMark">SI-assisted build (Claude) · NASA data</div>
 <div id="boot" class="hidden"></div>
 <div id="menu"></div>
+<div id="rotate"><div class="ph"></div><b>TURN YOUR PHONE SIDEWAYS</b><small>Outpost 3D is built for a wide screen.<br>Sideways it looks just like the laptop version.</small></div>
 <div id="nogl" class="hidden"></div>
 
 <script>
@@ -2414,13 +2456,33 @@ function inputVec() {
 let last = performance.now();
 function frame(now) { tick(now); requestAnimationFrame(frame); }
 // One step of the game: logic, then rendering. Kept separate from requestAnimationFrame so it can be stepped in tests.
+
+// ---------- phones: same layout as a laptop, scaled to fit ----------
+const UI_W = 1000, UI_H = 760;   // the smallest "laptop" screen the HUD and menu are designed for
+let rotDismissed = false, askRot = false;
+function fitUI() {
+  const vw = innerWidth, vh = innerHeight, land = vw > vh, s = Math.min(1, vw / UI_W, vh / UI_H), on = land && s < 0.999;
+  document.body.classList.toggle('fit', on);
+  document.body.classList.toggle('touchland', isTouch && land);
+  for (const id of ['hud', 'menu']) {
+    const el = $(id); el.classList.toggle('fitm', on);
+    el.style.width = on ? vw / s + 'px' : ''; el.style.height = on ? vh / s + 'px' : ''; el.style.transform = on ? 'scale(' + s + ')' : '';
+  }
+  document.documentElement.style.setProperty('--ui-s', on ? s : 1);
+}
+function checkRotate() {   // called every frame: cheap class toggle only when it changes
+  const want = isTouch && innerHeight > innerWidth && innerWidth < 600 && G.phase !== 'menu' && !G.cine && !rotDismissed;
+  if (want !== askRot) { askRot = want; document.body.classList.toggle('askrotate', want); }
+}
+addEventListener('resize', fitUI); addEventListener('orientationchange', () => setTimeout(fitUI, 150));
 function tick(now) {
   const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now; G.time += dt;   // clamp: never negative, never a huge jump
+  checkRotate();
   G.ft.push(dt); if (G.ft.length > 60) G.ft.shift(); G.fps = Math.round(G.ft.length / G.ft.reduce((a, b) => a + b, 0));
   if (G.phase !== 'menu' && G.s) {
     const dialog = ($('modal').childElementCount > 0 && G.phase !== 'choice' && G.phase !== 'over') || !$('boot').classList.contains('hidden');   // a dialog or the loading screen is open
     if ($('modal').childElementCount > 0 && document.pointerLockElement) document.exitPointerLock();
-    const paused = G.tut >= 0 || G.phase === 'choice' || dialog || G.spec || (G.demo && G.demo.hold);
+    const paused = G.tut >= 0 || G.phase === 'choice' || dialog || G.spec || (G.demo && G.demo.hold) || askRot;
     G.phaseT += dt;
     if (!paused) {
       if (G.phase === 'briefing' && G.phaseT >= CONFIG.briefingSeconds) setPhase('active');
@@ -2479,13 +2541,14 @@ function showMenu(view) {
       '<div class="mm-best">Best score: ' + (best || '--') + '</div></div>';
     hint = setup.location === 'moon' ? NASA_DATA.moonTrek.sites.find(x => x.id === setup.siteId).name + ': sunlit ' + Math.round(NASA_DATA.moonTrek.sites.find(x => x.id === setup.siteId).illumination * 100) + '% of the time, Earth in view ' + Math.round(NASA_DATA.moonTrek.sites.find(x => x.id === setup.siteId).earthVisibility * 100) + '%.' : 'Gale Crater: weak sun, dust storms, and Curiosity RAD measured 0.64 mSv a day.';
   } else if (menuView === 'load') {
-    panel = '<div class="mm-panel"><div class="mm-h">Load game:</div><p>Pick a save file on the right. The game autosaves every morning and when you leave a mission.</p><button data-mm="home" class="mm-confirm">Back</button></div>';
+    panel = '<div class="mm-panel"><div class="mm-h">Load game:</div><p>Pick a save file. The game autosaves every morning and when you leave a mission.</p><button data-mm="home" class="mm-confirm">Back</button></div>';
     hint = 'Saves stay in this browser on this computer.';
   } else if (menuView === 'demo') {
     panel = '<div class="mm-panel"><div class="mm-h">Demo mode:</div><p>A 23-second run through one day: oxygen runs low, the commander repairs the scrubber, the tank refills, and a real DONKI solar storm sends the crew to the shelter. <b>Watch</b> plays like a normal game with no captions; <b>Play by hand</b> adds step-by-step captions that name the NASA data. <b>Cinematic</b> is a 30-second camera tour of the base.</p><div class="mm-row"><button id="demoW" class="mm-opt">Watch</button><button id="demoP" class="mm-opt">Play by hand</button><button id="demoC" class="mm-opt">Cinematic (30 s)</button></div><button data-mm="home" class="mm-confirm">Back</button></div>';
     hint = 'Made for showing the judges.';
   }
   const anim = menuView !== showMenu.last; showMenu.last = menuView;   // replay entrance animations only when the view changes
+  m.dataset.view = menuView;
   m.innerHTML = '<div class="mm' + (anim ? ' anim' : '') + '"><div class="mm-stars"></div><div class="mm-orbit"><i></i></div>' + ['tl', 'tr', 'bl', 'br'].map(c => '<i class="mm-corner ' + c + '"></i>').join('') +
     '<div class="mm-frame"></div><div class="mm-title"><b>OUTPOST</b><b class="two">3D</b><span>WALK THE BASE</span></div>' +
     '<nav class="mm-nav">' + (auto ? item('continue', 'Continue') : '') + item('new', 'New mission') + item('load', 'Load game') + item('demo', 'Demo mode') + item('learn', 'Learn & NASA data') + '</nav>' +
@@ -2762,6 +2825,7 @@ if (selfTestOnly) {
 } else if (initGL()) {
   showMenu();
   playBoot('OUTPOST OS 1.0', [['MEMORY', '640K OK'], ['NASA DATA PACK (ARCHIVED)', 'LOADED'], ['RENDERER: HAND-WRITTEN WEBGL', 'OK'], ['SUIT TELEMETRY', 'OK']]);
+  fitUI();
   requestAnimationFrame(frame);
   const tutLoop = () => { if (G.tut >= 0 && G.s) tutTick(); setTimeout(tutLoop, 150); }; tutLoop();
 }
