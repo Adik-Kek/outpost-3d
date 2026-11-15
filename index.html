@@ -75,6 +75,17 @@ const NASA_DATA = {
     potato_transpiration_kg_per_m2_day: 4.00, // Table 4-91
     lunarIceO2_t_per_year: 1, lunarIce_kW: 6.7 // Table 4-85, lunar O2 from polar water
   },
+  gravity: {
+    name: 'NASA Planetary Fact Sheets (surface gravity)',
+    source: 'https://nssdc.gsfc.nasa.gov/planetary/factsheet/ (Moon and Mars fact sheets)',
+    status: 'Surface gravity values as published; hop speed is an estimate.',
+    drives: 'Jumping (Space): height = v²/2g, time in air = 2v/g.',
+    shows: 'Your astronaut floats much higher and longer on the Moon than on Mars.',
+    moon_m_s2: 1.62, mars_m_s2: 3.71, earth_m_s2: 9.81,
+    // Push-off speed of a hop in a pressure suit. simplified: an estimate, not from the fact sheet,
+    // sized so a Moon hop matches the ~0.4–0.7 m hops seen in Apollo surface footage.
+    hopSpeed_m_s: 1.5, simplified: true
+  },
   fallback: {
     name: 'Fallback values from the challenge brief (simplified)',
     status: 'Approximate values given in the brief.',
@@ -501,7 +512,7 @@ body.spec #siMark { bottom: calc(11vh + 8px); }
   <div id="prompt" class="ink hidden"></div>
   <div id="fps"></div>
 </div>
-<div id="touch" class="hidden"><div id="stick"><i></i></div><div id="tbtns"><button id="tE">E</button><button id="tWhy">?</button><button id="tV">VIEW</button></div></div>
+<div id="touch" class="hidden"><div id="stick"><i></i></div><div id="tbtns"><button id="tE">E</button><button id="tJ">JUMP</button><button id="tWhy">?</button><button id="tV">VIEW</button></div></div>
 <div id="whyPop" class="ink hidden"></div>
 <div id="modal"></div>
 <div id="demoBar" class="hidden"></div>
@@ -1689,9 +1700,9 @@ function drawAstronaut(a, look) {
   const sit = pose === 'sit' ? -0.3 : 0;
   const R0 = M4.mul(root, M4.T(0, bob + sit, 0));
   const swing = pose === 'walk' ? Math.sin(t * 8) * 0.7 : 0;
-  const armL = pose === 'work' ? -1.2 + Math.sin(t * 9) * 0.35 : pose === 'sit' ? -0.9 : -swing;
-  const armR = pose === 'work' ? -1.3 - Math.sin(t * 9) * 0.35 : pose === 'sit' ? -0.7 + Math.sin(t * 3) * 0.15 : swing;
-  const legs = pose === 'sit' ? [-1.4, -1.4] : [swing, -swing];
+  const armL = pose === 'jump' ? -0.6 : pose === 'work' ? -1.2 + Math.sin(t * 9) * 0.35 : pose === 'sit' ? -0.9 : -swing;
+  const armR = pose === 'jump' ? -0.6 : pose === 'work' ? -1.3 - Math.sin(t * 9) * 0.35 : pose === 'sit' ? -0.7 + Math.sin(t * 3) * 0.15 : swing;
+  const legs = pose === 'sit' ? [-1.4, -1.4] : pose === 'jump' ? [-0.45, 0.25] : [swing, -swing];
   const ow = 0.028, thin = { outline: false };
   // legs + boots (pivot at hip)
   [-0.14, 0.14].forEach((x, i) => {
@@ -1741,7 +1752,7 @@ function newMission(opts, extra) {
 function enterWorld(s, pos) {
   G.s = s;
   buildScene(G.s.C.isMoon, G.s.C.site.id);
-  Object.assign(G.player, { x: pos.x, z: pos.z, y: pos.x > HALL.L ? groundY(pos.x, pos.z) : 0, yaw: pos.yaw, pose: 'idle' });
+  Object.assign(G.player, { x: pos.x, z: pos.z, y: pos.x > HALL.L ? groundY(pos.x, pos.z) : 0, h: 0, vy: 0, yaw: pos.yaw, pose: 'idle' });
   G.camD = 6; G.door = 0;
   if (G.spec) toggleSpectator();
   Object.assign(G.cam, { yaw: 1.25, pitch: 0.42, dist: 9 });   // start looking down the length of the hall
@@ -1780,15 +1791,34 @@ function collide(x, z, nx, nz) {
   return [nx, nz];
 }
 const SPEED = 3.4;
+// Jumping uses the real surface gravity of the world you are on (NASA fact sheets): same push-off, very different hop.
+const gravityHere = () => G.s && G.s.C.isMoon ? NASA_DATA.gravity.moon_m_s2 : NASA_DATA.gravity.mars_m_s2;
+function hopStats(g) { const v = NASA_DATA.gravity.hopSpeed_m_s; return { h: v * v / (2 * g), t: 2 * v / g }; }   // peak height, time in the air
+function tryJump() {
+  const P = G.player;
+  if (G.act || G.spec || G.cine || (P.h || 0) > 0.001 || !(G.phase === 'active' || G.phase === 'briefing')) return;
+  P.vy = NASA_DATA.gravity.hopSpeed_m_s; P.h = 0.0001;
+  if (!G.jumpTold) {   // first hop: say what the real data means
+    G.jumpTold = true;
+    const g = gravityHere(), here = hopStats(g), earth = hopStats(NASA_DATA.gravity.earth_m_s2), world = G.s.C.isMoon ? 'Moon' : 'Mars';
+    addLogUI(world + ' gravity is ' + g + ' m/s² (NASA fact sheet), so your hop rises ' + r2(here.h) + ' m and lasts ' + r2(here.t) + ' s. The same push on Earth: ' + r2(earth.h) + ' m, ' + r2(earth.t) + ' s.');
+  }
+}
+const r2 = x => Math.round(x * 100) / 100;
 function movePlayer(dt, input) {
   const P = G.player, len = Math.hypot(input.x, input.y);
-  if (G.act || len < 0.05) { P.pose = G.act ? 'work' : 'idle'; return; }
+  const floor = () => P.x > HALL.L ? groundY(P.x, P.z) : 0;
+  if ((P.h || 0) > 0) {   // ballistic: v -= g·dt, height += v·dt
+    P.vy -= gravityHere() * dt; P.h += P.vy * dt;
+    if (P.h <= 0) { P.h = 0; P.vy = 0; }
+  }
+  if (G.act || len < 0.05) { P.y = floor() + (P.h || 0); P.pose = G.act ? 'work' : P.h > 0 ? 'jump' : 'idle'; return; }
   const ix = input.x / Math.max(1, len), iy = input.y / Math.max(1, len), cy = G.cam.yaw;
   // camera-relative: forward = (−sin yaw, −cos yaw), right = (cos yaw, −sin yaw)
   const dx = (ix * Math.cos(cy) - iy * Math.sin(cy)) * SPEED * dt, dz = (-ix * Math.sin(cy) - iy * Math.cos(cy)) * SPEED * dt;
   [P.x, P.z] = collide(P.x, P.z, P.x + dx, P.z + dz);
-  P.y = P.x > HALL.L ? groundY(P.x, P.z) : 0;
-  P.yaw = Math.atan2(dx, dz); P.pose = 'walk'; P.anim += dt;
+  P.y = floor() + (P.h || 0);
+  P.yaw = Math.atan2(dx, dz); P.pose = P.h > 0 ? 'jump' : 'walk'; P.anim += dt;
 }
 
 // ---------- crew AI ----------
@@ -1907,7 +1937,7 @@ function renderHints() {
   if (st && st.act && working) lines.push([SIM.ACTIONS[st.act].name, 'E']);
   if (st) lines.push(['Why: ' + st.name.toLowerCase(), 'Q']);
   if (G.phase === 'choice') lines.push(['Choose', '1 / 2']);
-  lines.push(['Walk', 'WASD'], [G.view === 'first' ? 'Third person' : 'First person', 'V'], ['Learn', 'L'], ['Save', 'K'], ['Pause', 'Esc']);
+  lines.push(['Walk', 'WASD'], ['Jump', 'Space'], [G.view === 'first' ? 'Third person' : 'First person', 'V'], ['Learn', 'L'], ['Save', 'K'], ['Pause', 'Esc']);
   setHTML('hints', lines.slice(0, 6).map(([a, k]) => '<div>' + esc(a) + ' : <b>[' + k + ']</b></div>').join(''));
 }
 function renderPrompt() {
@@ -2296,6 +2326,7 @@ addEventListener('keydown', e => {
   if (G.demo && !G.demo.play) return;
   if (G.phase === 'choice' && (e.key === '1' || e.key === '2')) { pickChoice(+e.key - 1); return; }
   if ($('modal').innerHTML) return;
+  if (e.key === ' ') { e.preventDefault(); tryJump(); }
   if (e.key === 'e' || e.key === 'E') tryAct();
   if (e.key === 'q' || e.key === 'Q') { const st = nearStation(); if (st) openWhy(st.why); }
   if (e.key === 'l' || e.key === 'L') openLearn('data');
@@ -2370,7 +2401,7 @@ const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in win
   stick.addEventListener('pointerdown', e => { id = e.pointerId; stick.setPointerCapture(id); set(e); });
   stick.addEventListener('pointermove', e => { if (e.pointerId === id) set(e); });
   stick.addEventListener('pointerup', () => { id = null; G.stick = { x: 0, y: 0 }; knob.style.transform = ''; });
-  $('tE').onclick = () => tryAct(); $('tV').onclick = () => toggleView(); $('tWhy').onclick = () => { const st = nearStation(); if (st) openWhy(st.why); };
+  $('tE').onclick = () => tryAct(); $('tJ').onclick = () => tryJump(); $('tV').onclick = () => toggleView(); $('tWhy').onclick = () => { const st = nearStation(); if (st) openWhy(st.why); };
 })();
 function inputVec() {
   const k = G.keys; let x = (k['d'] || k['arrowright'] ? 1 : 0) - (k['a'] || k['arrowleft'] ? 1 : 0), y = (k['w'] || k['arrowup'] ? 1 : 0) - (k['s'] || k['arrowdown'] ? 1 : 0);
@@ -2578,7 +2609,7 @@ function showDebrief() {
   $('tomenu').onclick = () => toMenu();
 }
 function openLearn(tab) {
-  const N = NASA_DATA, K = SIM.K, ds = [N.donki, N.rad, N.moonTrek, N.bvad, N.fallback];
+  const N = NASA_DATA, K = SIM.K, ds = [N.donki, N.rad, N.moonTrek, N.bvad, N.gravity, N.fallback];
   const tabs = [['data', 'NASA data'], ['glossary', 'Glossary'], ['science', 'How the numbers work'], ['test', 'Self-test']];
   const body = {
     data: ds.map(d => '<p><b>' + esc(d.name) + '</b>' + (d.simplified ? ' <span class="tag" style="background:#8a5a00">simplified</span>' : '') + '<br><small><b>Source:</b> ' + esc(d.source || 'Challenge brief') + '<br><b>Status:</b> ' + esc(d.status) + (d.drives ? '<br><b>Drives:</b> ' + esc(d.drives) : '') + (d.shows ? '<br><b>3D:</b> ' + esc(d.shows) : '') + '</small></p>').join('') +
@@ -2593,7 +2624,8 @@ function openLearn(tab) {
         ['BVAD O₂ / CO₂', N.bvad.o2Consumed_kg_per_CM_day + ' / ' + N.bvad.co2Produced_kg_per_CM_day + ' kg/CM-d', 'O₂ tank fill height, scrubber alarm'],
         ['BVAD food / water', N.bvad.foodSolids_kg_per_CM_day + ' / ' + K.WATER_PER_CM + ' kg/CM-d, ' + Math.round(K.WATER_RECOVERY * 100) + '% recovery', 'Galley alarm, water tank level'],
         ['BVAD potato', N.bvad.potato_edible_g_per_m2_day + ' g food, ' + N.bvad.potato_o2_g_per_m2_day + ' g O₂ per m²·day', 'Plant cones grow, turn brown when dry'],
-        ['BVAD ice O₂ plant', N.bvad.lunarIce_kW + ' kW → 1 t O₂/yr', 'Ice drill spins: +' + r1(K.DRILL_WATER) + ' kg water/day']
+        ['BVAD ice O₂ plant', N.bvad.lunarIce_kW + ' kW → 1 t O₂/yr', 'Ice drill spins: +' + r1(K.DRILL_WATER) + ' kg water/day'],
+        ['Surface gravity (fact sheets)', 'Moon ' + N.gravity.moon_m_s2 + ' · Mars ' + N.gravity.mars_m_s2 + ' m/s²; hop ' + N.gravity.hopSpeed_m_s + ' m/s (simplified)', 'Space to jump: Moon hop ' + r2(hopStats(N.gravity.moon_m_s2).h) + ' m, Mars ' + r2(hopStats(N.gravity.mars_m_s2).h) + ' m']
       ].map(r => '<tr><td>' + r.map(esc).join('</td><td>') + '</td></tr>').join('') + '</table>',
     glossary: '<table>' + [['BVAD', 'NASA’s handbook of how much air, water and food people use.'], ['CM-d', 'One crew member for one day.'], ['Scrubber', 'Machine that removes CO₂ from cabin air.'], ['Electrolysis', 'Splitting water into hydrogen and oxygen with electricity.'], ['Regolith', 'Loose rock and dust. Bagged and piled up, it blocks radiation.'], ['Berm', 'A wall of piled regolith around the base.'], ['SEP', 'Solar particle event: a burst of fast particles from the Sun.'], ['Flare / CME', 'A flash on the Sun / a cloud of solar gas. Both warn that particles may follow.'], ['DONKI', 'NASA’s space weather event database.'], ['RAD', 'Curiosity rover’s radiation detector.'], ['mSv', 'Millisievert: a unit of radiation dose to the body.'], ['kW / kWh', 'kW is power right now; kWh is energy stored or used (1 kW for 1 hour).'], ['ppm', 'Parts per million. 5,000 ppm CO₂ = 0.5% of the air.'], ['Sol', 'A Mars day: about 24.6 hours.']].map(r => '<tr><td><b>' + r[0] + '</b></td><td>' + esc(r[1]) + '</td></tr>').join('') + '</table>',
     science: '<table>' + [['O₂ maker energy', '285.8 kJ/mol × 2 ÷ 32 g = 4.96 kWh/kg; ÷ 0.6 efficiency (simplified) = ' + r1(K.ELEC_KWH_PER_KG) + ' kWh per kg O₂'], ['Water per kg O₂', '36.03 g water → 32.00 g O₂ = ' + K.WATER_PER_KG_O2.toFixed(3) + ' kg'], ['Daily water loss', K.WATER_PER_CM + ' kg × 4 × (1 − 0.85) = ' + r1(K.WATER_PER_CM * 4 * 0.15) + ' kg/day'], ['Potato bed', K.GH_AREA + ' m² × BVAD rates = ' + r1(K.GH_FOOD) + ' kg food, ' + r1(K.GH_O2) + ' kg O₂/day; 150 W/m² lights = ' + K.GH_KW + ' kW and ' + SIM.GROW_DAYS + '-day growth are simplified'], ['Moon dark spell', '(1 − illumination) × ' + K.LUNATION + ' days (Moon Trek + fallback 14.75-day night)'], ['Mars sunlight', '1 ÷ 1.524² = ' + Math.round(K.MARS_SUN * 100) + '% of the Moon’s, × ½ for night'], ['Berm', 'each layer: storm particles ×' + K.SHIELD_SEP + ', cosmic rays ×' + K.SHIELD_GCR + ' (simplified)'], ['Ice drill', '1 t O₂/yr ÷ 365 × 1.126 = ' + r1(K.DRILL_WATER) + ' kg water/day at ' + K.DRILL_KW + ' kW (BVAD)'], ['CO₂ level', '1 kg ≈ 0.55 m³ in a 500 m³ cabin = ' + Math.round(K.PPM_PER_KG_CO2) + ' ppm (simplified)'], ['Score', 'crew health + budget + O₂ + water/5 + food/2 − dose/2']].map(r => '<tr><td><b>' + r[0] + '</b></td><td>' + esc(r[1]) + '</td></tr>').join('') + '</table>',

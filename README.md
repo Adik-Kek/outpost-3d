@@ -57,6 +57,7 @@ node selftest.js
 | Action | Keyboard / mouse | Touch |
 |---|---|---|
 | Walk | WASD or arrow keys | On-screen joystick |
+| Jump (real Moon / Mars gravity) | **Space** | JUMP button |
 | Look around / zoom | Drag the mouse / scroll wheel | Drag on the right side of the screen |
 | Use a station (repair, water, reroute, build, ration, drill) | **E** | **E** button |
 | Explain a station | **Q** (or the Why? button in the prompt) | **?** button |
@@ -103,6 +104,7 @@ The crew work visibly at their stations: **Mira** (dark ponytail, green suit) in
 | BVAD Table 3-31: food solids | 0.800 kg/CM-d (dry) | Food use; **galley alarm** |
 | BVAD water use, planetary base | 2.5 + 0.4 hygiene + 0.5 flush = 3.4 kg/CM-d | Water use; short showers remove the 0.4 hygiene share. **Water tank level.** |
 | BVAD ISS urine processor recovery | 85% | Recycler returns 85%, so about 2 kg is lost every day |
+| NASA Planetary Fact Sheets: surface gravity | Moon 1.62 m/s², Mars 3.71 m/s² (Earth 9.81). Hop push-off 1.5 m/s is a **simplified** estimate matching Apollo surface hops. | **Space** makes your astronaut jump with real ballistics (h = v²/2g): **0.69 m and 1.85 s in the air on the Moon, 0.30 m and 0.81 s on Mars** (0.11 m on Earth). The first hop logs the numbers. |
 | BVAD Tables 4-90/4-91: white potato | 21.06 g food, 32.23 g O₂, 45.23 g CO₂, 4.0 kg water per m²·day | 40 m² bed: 0.84 kg food and 1.29 kg O₂ per day. **Plant cones grow, and turn yellow when dry and brown when dead.** |
 | BVAD Table 4-85: lunar O₂ from polar water | 1 t O₂/yr at 6.7 kW → 3.1 kg water/day | **Ice drill** (its bit spins while on) |
 | Fallback: Moon day/night 14.75 days | Lunar cycle 29.5 days | Length of the lunar month |
