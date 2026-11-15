@@ -199,6 +199,7 @@ As the Space Apps rules require, this project discloses its use of AI ("Super In
 - Curiosity RAD surface dose, NASA PDS MSL-M-RAD-3-RDR-V1.0: https://pds-ppi.igpp.ucla.edu/data/MSL-M-RAD-3-RDR-V1.0/, using the published summaries Hassler et al., *Science* 343 (2014) and Zeitlin et al., *Science* 340 (2013).
 - Moon Trek, NASA Solar System Treks (LRO): https://trek.nasa.gov/moon/, layers `WAC_POLE_ILL_PCT_SOUTH_100M` and `AVGVISIB_85S_060M_201608_EARTH_SP`. The three site values are simplified estimates, not layer readings (see above).
 - Life Support Baseline Values and Assumptions Document (BVAD), NASA/TP-2015-218570/REV2: https://ntrs.nasa.gov/citations/20210024855
+- NASA Planetary Fact Sheets (NSSDCA), Moon and Mars surface gravity: https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html and https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html
 
 **Tools:** Claude Code (Anthropic) for writing code; GitHub for hosting the code; Vercel for hosting the playable site. The game uses no third-party code, libraries, fonts, images or sounds: the WebGL renderer is hand-written, and text uses the browser's built-in fonts.
 
