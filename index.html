@@ -465,6 +465,12 @@ button.primary small { color: #ff9b85; }
 .mm-ver { left: 54px; bottom: 58px; }
 /* ===== spectator mode: no HUD, cinematic bars ===== */
 body.spec #hud, body.spec #labels, body.spec #touch, body.spec #visor, body.spec #demoBar, body.spec #whyPop { display: none !important; }
+#cineCap { position: fixed; left: 50%; bottom: calc(11vh + 26px); transform: translateX(-50%); z-index: 9; pointer-events: none; white-space: nowrap; opacity: 0;
+  font: 700 clamp(16px, 2.4vw, 30px) "Courier New", Courier, monospace; letter-spacing: .22em; color: #fff; text-shadow: 0 0 10px #000, 0 2px 2px #000; }
+#cineCap i { display: inline-block; width: .55em; height: .55em; background: #ff3b24; margin-right: .7em; vertical-align: .08em; }
+#cineCap.on { animation: cinecap 3.9s ease-out forwards; }
+@keyframes cinecap { 0% { opacity: 0; transform: translate(-50%, 8px); letter-spacing: .3em; } 14% { opacity: 1; transform: translate(-50%, 0); letter-spacing: .22em; } 86% { opacity: 1; } 100% { opacity: 0; } }
+body:not(.spec) #cineCap { display: none; }
 #letterbox::before, #letterbox::after { content: ""; position: fixed; left: 0; right: 0; height: 0; background: #000; z-index: 8; transition: height .6s ease; pointer-events: none; }
 #letterbox::before { top: 0; } #letterbox::after { bottom: 0; }
 body.spec #letterbox::before, body.spec #letterbox::after { height: 11vh; }
@@ -501,6 +507,7 @@ body.spec #siMark { bottom: calc(11vh + 8px); }
 <div id="demoBar" class="hidden"></div>
 <div id="dayfade"></div>
 <div id="letterbox"></div>
+<div id="cineCap"></div>
 <div id="specHint"></div>
 <div id="siMark">SI-assisted build (Claude) · NASA data</div>
 <div id="boot" class="hidden"></div>
@@ -2022,7 +2029,7 @@ function openSaves(mode) {   // mode: 'save' (in game) or 'load' (menu)
 }
 function toMenu() {
   menuView = 'home'; showMenu.last = null;
-  G.cine = null;
+  G.cine = null; if ($('cineCap')) cineCaption('');
   if (G.spec) toggleSpectator(); G.demo = null; $('demoBar').classList.add('hidden'); hideTutorial(); $('modal').innerHTML = ''; G.phase = 'menu'; $('hud').classList.add('hidden'); showMenu(); }
 
 // ---------- Why? popups ----------
@@ -2612,39 +2619,68 @@ const DEMO_CAPS = [
 ];
 /* ---------- Cinematic: a 30-second automatic camera tour (uses the spectator camera) ---------- */
 // Each shot eases the camera from one position/aim to another. Positions are in metres (habitat x −12..12, airlock at x = 12).
+// 30-second trailer: three shots on the Moon, a black "next stop" cut, three shots on Mars, then the title card.
 const CINE_SHOTS = [
-  { dur: 5.5, from: [36, 10, 24], fromLook: [2, 2, 0], to: [25, 5.5, 19], toLook: [9, 2, -3] },          // establishing: the habitat on the plain
-  { dur: 5,   from: [31, 3, 0], fromLook: [21, 1.4, -8], to: [14.5, 2.4, -1.2], toLook: [22, 1.3, -10] },  // low sweep along the solar wings
-  { dur: 4.5, from: [20, 1.8, 0.2], fromLook: [6, 1.6, 0], to: [10.2, 1.7, 0], toLook: [-4, 1.4, 0] },     // through the airlock
-  { dur: 5,   from: [9.5, 2.7, 2.6], fromLook: [6, 1.2, -4], to: [5, 1.7, 0.6], toLook: [7.7, 1.1, -4] },   // past the O2 tanks
-  { dur: 5,   from: [4.6, 2.6, 0.8], fromLook: [1, 0.9, -3.3], to: [-1.8, 2.5, 0.6], toLook: [1, 0.8, -3.3] }, // greenhouse close-up
-  { dur: 5,   from: [-4, 2, 2], fromLook: [-6, 1, 3], to: [-2, 28, 22], toLook: [2, 0, -3] }                 // crane up through the roof
+  { dur: 5,   from: [36, 10, 24], fromLook: [2, 2, 0], to: [25, 5.5, 19], toLook: [9, 2, -3] },          // MOON establishing: the habitat on the plain
+  { dur: 4.5, from: [31, 3, 0], fromLook: [21, 1.4, -8], to: [14.5, 2.4, -1.2], toLook: [22, 1.3, -10] },  // low sweep along the solar wings
+  { dur: 5,   from: [20, 1.8, 0.2], fromLook: [6, 1.6, 0], to: [9.5, 2.4, 1.6], toLook: [5.5, 1.1, -4] },  // through the airlock, turn to the O2 tanks
+  { dur: 5,   from: [-34, 9, -20], fromLook: [0, 2, 0], to: [-22, 4.5, -13], toLook: [4, 1.5, 2] },       // MARS establishing from the far side
+  { dur: 4.5, from: [4.4, 3.5, 1.4], fromLook: [1, 0.7, -3.4], to: [-2.2, 3.4, 1.2], toLook: [1, 0.6, -3.4] }, // greenhouse from above the crew
+  { dur: 2.5, from: [-6.2, 2.3, 1.6], fromLook: [-10.1, 1.2, -2.9], to: [-7.2, 2.0, 0.4], toLook: [-10.1, 1.1, -2.9] }, // push in on the storm shelter
+  { dur: 3.5, from: [-6, 11, 15], fromLook: [0, 1, 0], to: [-2, 28, 24], toLook: [2, 0, -3] }                 // crane up and away from the whole base
+];
+const CINE_MARS_AT = 14.5;   // = the first three shot lengths; the switch happens behind a black card
+const CINE_CAPS = [           // [from, to, text]
+  [0.6, 4.6, 'LEARN TO OPERATE A SPACE OUTPOST'],
+  [5.3, 9.2, 'POWER IT WITH REAL MOON SUNLIGHT DATA'],
+  [9.8, 13.6, 'KEEP FOUR CREW ALIVE FOR 20 DAYS'],
+  [15.4, 19.3, 'THEN TAKE IT TO MARS'],
+  [19.8, 23.4, 'GROW FOOD · RECYCLE AIR AND WATER'],
+  [24.0, 26.2, 'SURVIVE REAL SOLAR STORMS']
 ];
 const ease = x => x * x * (3 - 2 * x);   // smoothstep: slow in, slow out
-function startCinematic() {
-  if (G.view === 'first') toggleView();
-  $('menu').classList.add('hidden'); $('hud').classList.remove('hidden'); hideTutorial();
-  newMission({ location: 'moon', siteId: 'ridge', difficulty: 'pioneer', seed: 77, swOffset: 30 });
-  const s = G.s;   // dress the base for the camera: berm, extra solar wings, two potato beds, Earth in the sky
+function cineSet(loc) {   // build and dress the base for the camera: berm, extra solar wings, two potato beds, Earth in the Moon sky
+  newMission(loc === 'moon' ? { location: 'moon', siteId: 'ridge', difficulty: 'pioneer', seed: 77, swOffset: 30 } : { location: 'mars', difficulty: 'pioneer', seed: 77 });
+  const s = G.s;
   Object.assign(s.mods, { shield: 2, arrays: 4 });
   s.beds = [{ progress: 5, hydr: 0.9, wilt: 0, lost: false }, { progress: 4, hydr: 0.9, wilt: 0, lost: false }];
   s.earthPhase = 0;
-  Object.assign(G.player, { x: 10.1, z: -2.4, yaw: Math.PI, pose: 'work' });
+  Object.assign(G.player, loc === 'moon' ? { x: 10.1, z: -2.4, yaw: Math.PI, pose: 'work' } : { x: 10.1, z: -2.4, yaw: Math.PI, pose: 'work' });
   setPhase('active');
-  G.spec = { pos: CINE_SHOTS[0].from.slice(), vel: [0, 0, 0], yaw: 0, pitch: 0, yawS: 0, pitchS: 0, speed: 0 };
+  G.spec = { pos: [0, 0, 0], vel: [0, 0, 0], yaw: 0, pitch: 0, yawS: 0, pitchS: 0, speed: 0 };
   document.body.classList.add('spec');
-  G.cine = { t: 0, titled: false,
+}
+function cineCaption(text) {
+  const el = $('cineCap');
+  if (el.dataset.t === (text || '')) return;
+  el.dataset.t = text || '';
+  if (!text) { el.classList.remove('on'); return; }
+  el.innerHTML = '<i></i>' + text; el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+}
+function startCinematic() {
+  if (G.view === 'first') toggleView();
+  $('menu').classList.add('hidden'); $('hud').classList.remove('hidden'); hideTutorial();
+  cineCaption(''); cineSet('moon');
+  G.cine = { t: 0, titled: false, mars: false, cut: false,
     tick(dt) {
       this.t += dt;
+      if (this.t > CINE_MARS_AT - 0.55 && !this.cut) {   // black "next stop" card hides the scene rebuild
+        this.cut = true;
+        const el = $('dayfade'); el.innerHTML = '<b>MARS</b><span>NEXT STOP · 225 MILLION KM</span>'; el.className = ''; void el.offsetWidth; el.className = 'show';
+      }
+      if (this.t >= CINE_MARS_AT && !this.mars) { this.mars = true; const keep = this; cineSet('mars'); G.cine = keep; }
+      if (this.mars && !this.cleared && this.t > CINE_MARS_AT + 1.4) { this.cleared = true; $('dayfade').className = ''; }
       let t = this.t, k = 0;
       while (k < CINE_SHOTS.length - 1 && t > CINE_SHOTS[k].dur) { t -= CINE_SHOTS[k].dur; k++; }
       const sh = CINE_SHOTS[k], f = ease(Math.min(1, t / sh.dur)), mix = (a, b) => a.map((v, i) => v + (b[i] - v) * f);
       const pos = mix(sh.from, sh.to), look = mix(sh.fromLook, sh.toLook);
       const d = look.map((v, i) => v - pos[i]), L = Math.hypot(d[0], d[1], d[2]) || 1;
       G.spec.pos = pos; G.spec.yaw = G.spec.yawS = Math.atan2(-d[0], -d[2]); G.spec.pitch = G.spec.pitchS = Math.asin(d[1] / L);
+      const cap = CINE_CAPS.find(c => this.t >= c[0] && this.t < c[1]);
+      cineCaption(cap ? cap[2] : '');
       if (this.t > 26.5 && !this.titled) {   // title card over the final crane shot
         this.titled = true;
-        const el = $('dayfade'); el.innerHTML = '<b>OUTPOST 3D</b><span>REAL NASA DATA · REAL TRADE-OFFS</span>'; el.className = ''; void el.offsetWidth; el.className = 'title';
+        const el = $('dayfade'); el.innerHTML = '<b>OUTPOST 3D</b><span>LEARN TO OPERATE A SPACE OUTPOST · REAL NASA DATA</span>'; el.className = ''; void el.offsetWidth; el.className = 'title';
       }
       if (this.t > 30) { $('dayfade').className = ''; toMenu(); }
     } };
