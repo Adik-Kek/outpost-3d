@@ -1333,12 +1333,26 @@ Builder.prototype.done = function () { return this.g.p.length ? upload(this.g, t
 const VS = `
 attribute vec3 aPos; attribute vec3 aNor; attribute vec3 aOut; attribute vec3 aCol;
 uniform mat4 uModel; uniform mat4 uVP; uniform mat3 uNorm; uniform vec3 uScale; uniform mediump float uOutline; uniform float uOW;
+uniform mediump vec3 uCam; uniform vec2 uPx;   // uPx = outline width in clip units (x, y) at full strength
 varying vec3 vN; varying vec3 vW; varying vec3 vC;
 void main() {
-  vec3 p = aPos + (aOut / uScale) * uOW * uOutline;   // inverted hull: push the copy outward
-  vec4 w = uModel * vec4(p, 1.0);
+  vec4 w = uModel * vec4(aPos, 1.0);
   vW = w.xyz; vN = uNorm * aNor; vC = aCol;
-  gl_Position = uVP * w;
+  vec4 c = uVP * w;
+  if (uOutline > 0.5) {
+    // Inked outline with a constant width on screen: shove the back-face copy outward in screen space,
+    // then tuck it a little behind the object so it only ever shows around the silhouette (never pokes through neighbours).
+    vec3 dirW = mat3(uModel) * (aOut / uScale);
+    float dist = length(w.xyz - uCam);
+    vec3 back = normalize(w.xyz - uCam) * (0.015 + 0.004 * dist);
+    vec4 w2 = vec4(w.xyz + back, 1.0);
+    c = uVP * w2;
+    vec4 c2 = uVP * vec4(w2.xyz + dirW * 0.01, 1.0);
+    vec2 d = (c2.xy / max(c2.w, 0.001) - c.xy / max(c.w, 0.001)) / uPx;
+    float l = length(d);
+    if (l > 1e-6 && dot(dirW, dirW) > 1e-8) c.xy += (d / l) * uPx * c.w * (uOW / 0.035) * clamp(14.0 / max(dist, 0.1), 0.35, 1.0);
+  }
+  gl_Position = c;
 }`;
 const FS = `
 precision mediump float;
@@ -1373,7 +1387,7 @@ function initGL() {
   } catch (e) { noWebGL('shader error'); console.warn(e); return false; }
   gl.useProgram(prog);
   ['aPos', 'aNor', 'aOut', 'aCol'].forEach(a => { A[a] = gl.getAttribLocation(prog, a); gl.enableVertexAttribArray(A[a]); });
-  ['uModel','uVP','uNorm','uScale','uOutline','uOW','uTint','uEmis','uNoFog','uSunDir','uSunCol','uAmb','uFog','uFogRange','uCam','uPL','uPC'].forEach(u => U[u] = gl.getUniformLocation(prog, u));
+  ['uModel','uVP','uNorm','uScale','uOutline','uOW','uPx','uTint','uEmis','uNoFog','uSunDir','uSunCol','uAmb','uFog','uFogRange','uCam','uPL','uPC'].forEach(u => U[u] = gl.getUniformLocation(prog, u));
   gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE);
   SH = { box: shapeBox(), cyl: shapeCylinder(14), cone: shapeCylinder(10, 0), ball: shapeSphere(12, 8), cap: shapeSphere(12, 8, 1) };
   for (const k in SH) UNIT[k] = upload(SH[k], [1, 1, 1]);
@@ -1524,7 +1538,7 @@ function buildScene(isMoon, siteId) {
   SCENE.shell = XB.done();
 
   // --- props inside (outlined) ---
-  const B = new Builder();
+  const B = new Builder(), D = new Builder();   // D = flat decals drawn without outlines
   SOLIDS = [];
   const solid = (x0, x1, z0, z1) => SOLIDS.push([x0, x1, z0, z1]);
   // storm shelter: thick open-front box with hazard stripes
@@ -1549,7 +1563,11 @@ function buildScene(isMoon, siteId) {
   solid(-7.9, -5.1, -4.6, -3.5);
   // game table with chessboard, mugs, cards, stools
   B.box([-5.5, 0.72, 2.6], [1.8, 0.1, 1.2], PAL.wood); for (const [dx, dz] of [[-0.8, -0.5], [0.8, -0.5], [-0.8, 0.5], [0.8, 0.5]]) B.box([-5.5 + dx, 0.36, 2.6 + dz], [0.08, 0.72, 0.08], PAL.dark);
-  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) B.box([-5.8 + i * 0.13, 0.785, 2.45 + j * 0.13], [0.13, 0.02, 0.13], (i + j) % 2 ? PAL.black : PAL.cream);
+  B.box([-5.6, 0.79, 2.55], [0.6, 0.04, 0.6], PAL.brown);                                    // chessboard: one solid board (outlined)...
+  for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++)                                        // ...with a flat inlaid 8×8 grid on top (no ink, so it stays crisp)
+    D.box([-5.6 - 0.26 + i * 0.065 + 0.0325, 0.8115, 2.55 - 0.26 + j * 0.065 + 0.0325], [0.065, 0.003, 0.065], (i + j) % 2 ? [0.16, 0.14, 0.12] : PAL.cream);
+  for (const [i, j, c] of [[1, 1, PAL.cream], [3, 2, PAL.cream], [5, 6, [0.16, 0.14, 0.12]], [6, 5, [0.16, 0.14, 0.12]], [2, 6, [0.16, 0.14, 0.12]]])
+    B.cyl([-5.86 + i * 0.065 + 0.0325, 0.84, 2.29 + j * 0.065 + 0.0325], [0.04, 0.06, 0.04], c);   // a few pieces mid-game
   B.cyl([-4.9, 0.84, 2.3], [0.13, 0.16, 0.13], PAL.red); B.cyl([-5.0, 0.84, 2.95], [0.13, 0.16, 0.13], PAL.white);
   for (let k = 0; k < 4; k++) B.box([-4.85 + k * 0.08, 0.78, 2.65], [0.12, 0.01, 0.17], PAL.white, [0, 0.4 * k, 0]);
   for (const [x, z] of [[-6.2, 1.7], [-5.0, 1.7], [-4.3, 2.6]]) B.cyl([x, 0.25, z], [0.4, 0.5, 0.4], PAL.mustard);
@@ -1603,7 +1621,7 @@ function buildScene(isMoon, siteId) {
   for (const z of [-DOOR.half - 0.12, DOOR.half + 0.12]) B.box([Lh, DOOR.h / 2, z], [0.4, DOOR.h, 0.22], PAL.dark);
   B.box([Lh, DOOR.h + 0.1, 0], [0.4, 0.22, DOOR.half * 2 + 0.5], PAL.dark);
   for (let k = 0; k < 7; k++) B.box([Lh - 0.22, DOOR.h + 0.1, -1.2 + k * 0.4], [0.05, 0.2, 0.18], k % 2 ? PAL.black : PAL.mustard, [0.6, 0, 0]);
-  SCENE.props = B.done();
+  SCENE.props = B.done(); SCENE.deco = D.done();
 
   // --- outside: ground, rocks, solar posts, drill rig, regolith pile, crater rims ---
   const OB = new Builder();
@@ -2169,6 +2187,7 @@ function renderFrame() {
   G.eye = eye;
   VP = M4.mul(M4.persp(fp ? 1.2 : indoors ? 1.05 : 0.9, canvas.width / canvas.height, fp ? 0.05 : 0.1, 700), M4.lookAt(eye, look, [0, 1, 0]));
   gl.uniformMatrix4fv(U.uVP, false, VP); gl.uniform3fv(U.uCam, eye);
+  { const px = Math.max(1.6, Math.min(4, canvas.height / 360)); gl.uniform2fv(U.uPx, [2 * px / canvas.width, 2 * px / canvas.height]); }   // ~3 px ink lines
   // light: soft key light + ambient; lamps: warm living area, cold scrubber/power, blinking red alarm
   const sun = dark ? [0.25, 0.27, 0.35] : dust ? [0.55, 0.45, 0.38] : isMoon ? [0.72, 0.72, 0.7] : [0.75, 0.6, 0.5];
   gl.uniform3fv(U.uSunDir, [0.35, 0.82, 0.45].map(v => v / 1.0)); gl.uniform3fv(U.uSunCol, sun);
@@ -2192,6 +2211,7 @@ function renderFrame() {
   G.door += ((nearDoor ? 1 : 0) - G.door) * 0.1;
   part('box', M4.trs([HALL.L + 0.12, DOOR.h / 2 + G.door * (DOOR.h - 0.2), 0], [0.14, DOOR.h, DOOR.half * 2]), [0.62, 0.64, 0.62], { ow: 0.03 });
   draw(SCENE.props, ID, [1, 1, 1], { merged: true, ow: 0.035 });
+  draw(SCENE.deco, ID, [1, 1, 1], { merged: true, outline: false });
   for (let k = 0; k < s.mods.shield; k++) draw(SCENE.berm[k], ID, [1, 1, 1], { merged: true, ow: 0.04 });
   // Earth (Moon only, when Moon Trek says it is in view) and the Sun low on the horizon
   if (isMoon && SIM.earthUp(s, s.day)) { part('ball', M4.trs(EARTH_POS, [20, 20, 20]), [0.3, 0.5, 0.85], { emis: 0.7, noFog: true, ow: 0.8 }); part('ball', M4.trs([EARTH_POS[0] + 3.5, EARTH_POS[1] + 3, EARTH_POS[2] + 7.5], [8.5, 6, 6]), [0.45, 0.7, 0.4], { emis: 0.7, noFog: true, outline: false }); }
